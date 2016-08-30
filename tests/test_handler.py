@@ -10,7 +10,7 @@ import tornado.testing
 import tornado.web
 
 from app.db.postgres_adapter import PostgresAdapter
-from app.run import make_app
+from run import make_app
 
 tornado_logging.access_log.setLevel(logging.DEBUG)
 tornado_logging.app_log.setLevel(logging.DEBUG)

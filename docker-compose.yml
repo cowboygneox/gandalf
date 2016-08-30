@@ -7,3 +7,16 @@ postgres:
   image: postgres
   ports:
     - "5432:5432"
+
+gandalf:
+  build: .
+  ports:
+    - "8888:8888"
+  links:
+    - redis
+    - postgres
+  environment:
+    GANDALF_PROXIED_HOST: google.com
+    GANDALF_POSTGRES_HOST: postgres
+    GANDALF_REDIS_HOST: redis
+  restart: always
