@@ -2,7 +2,7 @@ import uuid
 
 import psycopg2
 
-from app.db import DBAdapter
+from app.db import DBAdapter, User
 
 
 class PostgresAdapter(DBAdapter):
@@ -15,11 +15,12 @@ class PostgresAdapter(DBAdapter):
         cursor.execute("CREATE TABLE IF NOT EXISTS users (user_id UUID, username TEXT, password TEXT)")
         conn.commit()
 
-    def get_user(self, username):
+    def get_user(self, username) -> User:
         conn = self._new_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT user_id, username, password FROM users WHERE username = %s", [username])
-        return cursor.fetchone()
+        first = cursor.fetchone()
+        return User(first[0], first[1], first[2])
 
     def create_user(self, username, password):
         conn = self._new_connection()
