@@ -13,7 +13,7 @@ from app.db.postgres_adapter import PostgresAdapter
 def make_app(proxy_host, db_adapter):
     cache = redis.StrictRedis(host='localhost', port=6379)
 
-    def with_authentication(block):
+    def user_authenticated(block):
         def wrapper(self):
             authorization = self.request.headers.get_list('Authorization')
             if len(authorization) == 0:
@@ -32,7 +32,7 @@ def make_app(proxy_host, db_adapter):
         def __init__(self, application, request, **kwargs):
             super().__init__(application, request, **kwargs)
 
-        @with_authentication
+        @user_authenticated
         @tornado.web.asynchronous
         def get(self, user_id):
             def callback(response):

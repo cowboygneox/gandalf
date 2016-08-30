@@ -12,7 +12,7 @@ class PostgresAdapter(DBAdapter):
     def __init__(self):
         conn = self._new_connection()
         cursor = conn.cursor()
-        cursor.execute("CREATE TABLE IF NOT EXISTS users (user_id UUID, username TEXT, password TEXT)")
+        cursor.execute("CREATE TABLE IF NOT EXISTS users (user_id UUID PRIMARY KEY, username TEXT UNIQUE, password TEXT)")
         conn.commit()
 
     def get_user(self, username) -> User:
