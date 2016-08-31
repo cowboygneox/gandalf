@@ -1,5 +1,5 @@
-import os
 import json
+import os
 import uuid
 
 import redis
@@ -8,10 +8,11 @@ import tornado.ioloop
 import tornado.web
 from passlib.apps import custom_app_context as pwd_context
 
+from app.config import GandalfConfiguration
 from app.db.postgres_adapter import PostgresAdapter
 
 
-def make_app(proxy_host, db_adapter, allowed_hosts):
+def make_app(config: GandalfConfiguration):
     cache = redis.StrictRedis(host=os.getenv("GANDALF_REDIS_HOST", "localhost"), port=6379)
 
     def user_authenticated(block):
@@ -41,7 +42,7 @@ def make_app(proxy_host, db_adapter, allowed_hosts):
                 self.add_header("USER_ID", user_id)
                 self.finish()
 
-            req = tornado.httpclient.HTTPRequest("http://{}/{}".format(proxy_host, self.request.uri))
+            req = tornado.httpclient.HTTPRequest("http://{}/{}".format(config.proxy_host, self.request.uri))
             client = tornado.httpclient.AsyncHTTPClient()
             client.fetch(req, callback, raise_error=False)
 
@@ -51,7 +52,7 @@ def make_app(proxy_host, db_adapter, allowed_hosts):
             password = self.get_body_argument("password")
 
             if username and password:
-                user = db_adapter.get_user(username)
+                user = config.db_adapter.get_user(username)
                 if pwd_context.verify(password, user.hashed_password):
                     token = str(uuid.uuid1())
                     cache.set(token, user.user_id)
@@ -66,7 +67,7 @@ def make_app(proxy_host, db_adapter, allowed_hosts):
     class UserHandler(tornado.web.RequestHandler):
         def post(self):
             hostname = self.request.host.split(":")[0]
-            if not hostname in allowed_hosts:
+            if not hostname in config.allowed_hosts:
                 self.send_error(401)
             else:
                 username = self.get_body_argument("username")
@@ -74,7 +75,7 @@ def make_app(proxy_host, db_adapter, allowed_hosts):
 
                 hashed_password = pwd_context.encrypt(password)
 
-                db_adapter.create_user(username, hashed_password)
+                config.db_adapter.create_user(username, hashed_password)
 
                 self.set_status(201)
                 self.finish()

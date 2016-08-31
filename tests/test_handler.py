@@ -9,6 +9,7 @@ import tornado.log as tornado_logging
 import tornado.testing
 import tornado.web
 
+from app import GandalfConfiguration
 from app.db.postgres_adapter import PostgresAdapter
 from run import make_app
 
@@ -29,7 +30,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         cursor.execute("DROP TABLE IF EXISTS users")
         conn.commit()
 
-        app = make_app('localhost:8889', PostgresAdapter(), ['localhost'])
+        app = make_app(GandalfConfiguration('localhost:8889', PostgresAdapter(), ['localhost']))
         app.listen(8888)
         return app
 
