@@ -29,7 +29,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         cursor.execute("DROP TABLE IF EXISTS users")
         conn.commit()
 
-        app = make_app('localhost:8889', PostgresAdapter())
+        app = make_app('localhost:8889', PostgresAdapter(), ['localhost'])
         app.listen(8888)
         return app
 

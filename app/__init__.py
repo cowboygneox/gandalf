@@ -11,7 +11,7 @@ from passlib.apps import custom_app_context as pwd_context
 from app.db.postgres_adapter import PostgresAdapter
 
 
-def make_app(proxy_host, db_adapter):
+def make_app(proxy_host, db_adapter, allowed_hosts):
     cache = redis.StrictRedis(host=os.getenv("GANDALF_REDIS_HOST", "localhost"), port=6379)
 
     def user_authenticated(block):
@@ -65,15 +65,19 @@ def make_app(proxy_host, db_adapter):
 
     class UserHandler(tornado.web.RequestHandler):
         def post(self):
-            username = self.get_body_argument("username")
-            password = self.get_body_argument("password")
+            hostname = self.request.host.split(":")[0]
+            if not hostname in allowed_hosts:
+                self.send_error(401)
+            else:
+                username = self.get_body_argument("username")
+                password = self.get_body_argument("password")
 
-            hashed_password = pwd_context.encrypt(password)
+                hashed_password = pwd_context.encrypt(password)
 
-            db_adapter.create_user(username, hashed_password)
+                db_adapter.create_user(username, hashed_password)
 
-            self.set_status(201)
-            self.finish()
+                self.set_status(201)
+                self.finish()
 
     return tornado.web.Application([
         (r"/login", LoginHandler),
