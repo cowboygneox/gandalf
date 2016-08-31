@@ -27,9 +27,16 @@ class PostgresAdapter(DBAdapter):
         else:
             return None
 
-    def create_user(self, username, password):
+    def create_user(self, user_id, username, password):
         conn = self._new_connection()
         cursor = conn.cursor()
         cursor.execute("INSERT INTO users (user_id, username, password) VALUES (%s, %s, %s)",
-                       [str(uuid.uuid1()), username, password])
+                       [user_id, username, password])
+        conn.commit()
+
+    def update_user_password(self, user_id, password):
+        conn = self._new_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET password = %s WHERE user_id = %s",
+                       [password, user_id]),
         conn.commit()

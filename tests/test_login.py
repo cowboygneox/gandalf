@@ -25,7 +25,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         return app
 
     def test_break_login(self):
-        response = self.fetch("/create", method="POST", body="username=test&password=test")
+        response = self.fetch("/users", method="POST", body="username=test&password=test")
         self.assertEqual(response.code, 201)
 
         def should_fail_login(body):

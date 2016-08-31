@@ -66,7 +66,7 @@ def make_app(config: GandalfConfiguration):
             except Exception:
                 self.send_error(401)
 
-    class UserHandler(tornado.web.RequestHandler):
+    class CreateUserHandler(tornado.web.RequestHandler):
         def post(self):
             hostname = self.request.host.split(":")[0]
             if not hostname in config.allowed_hosts:
@@ -74,16 +74,34 @@ def make_app(config: GandalfConfiguration):
             else:
                 username = self.get_body_argument("username")
                 password = self.get_body_argument("password")
+                user_id = str(uuid.uuid1())
 
                 hashed_password = pwd_context.encrypt(password)
 
-                config.db_adapter.create_user(username, hashed_password)
+                config.db_adapter.create_user(user_id, username, hashed_password)
 
                 self.set_status(201)
+                self.add_header("USER_ID", user_id)
+                self.finish()
+
+    class UpdateUserHandler(tornado.web.RequestHandler):
+        def post(self, user_id):
+            hostname = self.request.host.split(":")[0]
+            if not hostname in config.allowed_hosts:
+                self.send_error(401)
+            else:
+                password = self.get_body_argument("password")
+
+                hashed_password = pwd_context.encrypt(password)
+
+                config.db_adapter.update_user_password(user_id, hashed_password)
+
+                self.set_status(200)
                 self.finish()
 
     return tornado.web.Application([
         (r"/login", LoginHandler),
-        (r"/create", UserHandler),
+        (r"/users/(.*)", UpdateUserHandler),
+        (r"/users", CreateUserHandler),
         (r".*", MainHandler)
     ])
