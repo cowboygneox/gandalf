@@ -1,4 +1,4 @@
-# Gandalf Authentication Proxy
+# Gandalf Authentication Proxy [![Build Status](https://travis-ci.org/cowboygneox/gandalf.svg?branch=master)](https://travis-ci.org/cowboygneox/gandalf)
 
 ![Gandalf Meme: "You shall not pass!"](https://github.com/cowboygneox/gandalf/blob/master/assets/gandalf.jpg?raw=true)
 
