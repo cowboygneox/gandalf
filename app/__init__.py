@@ -9,6 +9,7 @@ import tornado.web
 from passlib.apps import custom_app_context as pwd_context
 
 from app.config import GandalfConfiguration
+from app.db import User
 from app.db.postgres_adapter import PostgresAdapter
 
 
@@ -48,11 +49,12 @@ def make_app(config: GandalfConfiguration):
 
     class LoginHandler(tornado.web.RequestHandler):
         def post(self):
-            username = self.get_body_argument("username")
-            password = self.get_body_argument("password")
+            try:
+                username = self.get_body_argument("username")
+                password = self.get_body_argument("password")
 
-            if username and password:
                 user = config.db_adapter.get_user(username)
+
                 if pwd_context.verify(password, user.hashed_password):
                     token = str(uuid.uuid1())
                     cache.set(token, user.user_id)
@@ -61,7 +63,7 @@ def make_app(config: GandalfConfiguration):
                     self.finish()
                 else:
                     self.send_error(401)
-            else:
+            except Exception:
                 self.send_error(401)
 
     class UserHandler(tornado.web.RequestHandler):

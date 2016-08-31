@@ -22,7 +22,10 @@ class PostgresAdapter(DBAdapter):
         cursor = conn.cursor()
         cursor.execute("SELECT user_id, username, password FROM users WHERE username = %s", [username])
         first = cursor.fetchone()
-        return User(first[0], first[1], first[2])
+        if first:
+            return User(first[0], first[1], first[2])
+        else:
+            return None
 
     def create_user(self, username, password):
         conn = self._new_connection()
