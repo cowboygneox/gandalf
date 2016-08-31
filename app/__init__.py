@@ -55,7 +55,7 @@ def make_app(proxy_host, db_adapter, allowed_hosts):
                 if pwd_context.verify(password, user.hashed_password):
                     token = str(uuid.uuid1())
                     cache.set(token, user.user_id)
-                    self.write(json.dumps({"token": token}))
+                    self.write(json.dumps({"access_token": token}))
                     self.set_status(200)
                     self.finish()
                 else:

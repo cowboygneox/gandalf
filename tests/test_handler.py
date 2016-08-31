@@ -48,7 +48,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
 
         response = self.fetch("/login", method="POST", body="username=test&password=test")
         self.assertEqual(response.code, 200)
-        token = json.loads(response.body.decode())["token"]
+        token = json.loads(response.body.decode())["access_token"]
 
         response = self.fetch("/", headers={"Authorization": "Bearer {}".format(token)})
         self.assertEqual(response.code, 200)
