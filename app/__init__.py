@@ -56,9 +56,13 @@ def make_app(config: GandalfConfiguration):
                 user = config.db_adapter.get_user(username)
 
                 if pwd_context.verify(password, user.hashed_password):
-                    token = str(uuid.uuid1())
-                    cache.set(token, user.user_id)
-                    cache.set(user.user_id, token)
+                    cached_token = cache.get(user.user_id)
+                    if cached_token:
+                        token = cached_token.decode()
+                    else:
+                        token = str(uuid.uuid1())
+                        cache.set(token, user.user_id)
+                        cache.set(user.user_id, token)
                     self.write(json.dumps({"access_token": token}))
                     self.set_status(200)
                     self.finish()

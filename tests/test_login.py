@@ -1,20 +1,20 @@
+import json
 import logging
 
 import psycopg2
 import tornado.log as tornado_logging
-import tornado.web
+import tornado.testing
 
 from app import GandalfConfiguration
 from app.db.postgres_adapter import PostgresAdapter
 from run import make_app
-import json
 
 tornado_logging.access_log.setLevel(logging.DEBUG)
 tornado_logging.app_log.setLevel(logging.DEBUG)
 tornado_logging.gen_log.setLevel(logging.DEBUG)
 
 
-class HandlerTest(tornado.testing.AsyncHTTPTestCase):
+class LoginTest(tornado.testing.AsyncHTTPTestCase):
     def get_app(self):
         conn = psycopg2.connect(host="localhost", user="postgres")
         cursor = conn.cursor()
