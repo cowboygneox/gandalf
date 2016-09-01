@@ -18,9 +18,21 @@ tornado_logging.app_log.setLevel(logging.DEBUG)
 tornado_logging.gen_log.setLevel(logging.DEBUG)
 
 
-class TestHandler(tornado.web.RequestHandler):
-    def get(self):
-        self.write("this works")
+def login(block):
+    def wrapper(self):
+        response = self.fetch("/")
+        self.assertEqual(response.code, 401)
+
+        response = self.fetch("/users", method="POST", body="username=test&password=test")
+        self.assertEqual(response.code, 201)
+
+        response = self.fetch("/login", method="POST", body="username=test&password=test")
+        self.assertEqual(response.code, 200)
+        token = json.loads(response.body.decode())["access_token"]
+
+        block(self, token)
+
+    return wrapper
 
 
 class HandlerTest(tornado.testing.AsyncHTTPTestCase):
@@ -35,24 +47,38 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         app.listen(8888)
         return app
 
-    def test_get_200(self):
-        os.putenv("NEXT_HOST", "http://localhost:8889")
+    def wire_app(self, app):
         background_app = tornado.web.Application([
-            (r".*", TestHandler),
+            (r".*", app),
         ])
         background_app.listen(8889)
 
-        response = self.fetch("/")
-        self.assertEqual(response.code, 401)
+    @login
+    def test_get_200(self, token):
+        test_self = self
 
-        response = self.fetch("/users", method="POST", body="username=test&password=test")
-        self.assertEqual(response.code, 201)
+        class TestHandler(tornado.web.RequestHandler):
+            def get(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                self.write("this works")
 
-        response = self.fetch("/login", method="POST", body="username=test&password=test")
-        self.assertEqual(response.code, 200)
-        token = json.loads(response.body.decode())["access_token"]
+        self.wire_app(TestHandler)
 
         response = self.fetch("/", headers={"Authorization": "Bearer {}".format(token)})
         self.assertEqual(response.code, 200)
         self.assertEqual(response.body.decode(), "this works")
-        self.assertIsNotNone(response.headers['USER_ID'])
+
+    @login
+    def test_post_200(self, token):
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def post(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                self.write("this works")
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", method="POST", headers={"Authorization": "Bearer {}".format(token)}, body="")
+        self.assertEqual(response.code, 200)
+        self.assertEqual(response.body.decode(), "this works")

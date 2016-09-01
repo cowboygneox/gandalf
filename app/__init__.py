@@ -54,20 +54,38 @@ def make_app(config: GandalfConfiguration):
         return wrapper
 
     class MainHandler(tornado.web.RequestHandler):
-        def __init__(self, application, request, **kwargs):
-            super().__init__(application, request, **kwargs)
+        def passthru(self, user_id):
+            def callback(response):
+                if response.body:
+                    self.write(response.body)
+                self.set_status(response.code)
+                self.finish()
+
+            url = "http://{}/{}".format(config.proxy_host, self.request.uri)
+            method = self.request.method
+
+            if method == "GET":
+                body = None
+            else:
+                body = self.request.body
+
+            headers = {
+                "USER_ID": user_id
+            }
+
+            req = tornado.httpclient.HTTPRequest(url, method=method, body=body, headers=headers)
+            client = tornado.httpclient.AsyncHTTPClient()
+            client.fetch(req, callback, raise_error=False)
 
         @user_authenticated
         @tornado.web.asynchronous
         def get(self, user_id):
-            def callback(response):
-                self.write(response.body)
-                self.add_header("USER_ID", user_id)
-                self.finish()
+            self.passthru(user_id)
 
-            req = tornado.httpclient.HTTPRequest("http://{}/{}".format(config.proxy_host, self.request.uri))
-            client = tornado.httpclient.AsyncHTTPClient()
-            client.fetch(req, callback, raise_error=False)
+        @user_authenticated
+        @tornado.web.asynchronous
+        def post(self, user_id):
+            self.passthru(user_id)
 
     class LoginHandler(tornado.web.RequestHandler):
         def post(self):
