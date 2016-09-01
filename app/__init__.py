@@ -103,8 +103,44 @@ def make_app(config: GandalfConfiguration):
             self.set_status(200)
             self.finish()
 
+    class SearchUserHandler(tornado.web.RequestHandler):
+        @internal_only
+        def post(self):
+            user_ids = self.get_body_arguments("user_id")
+
+            users = config.db_adapter.search_for_users(user_ids)
+
+            found_user_ids = [user.user_id for user in users]
+            missing_user_ids = list(filter(lambda user_id: user_id not in found_user_ids, user_ids))
+
+            response_payload = {}
+
+            if len(users) > 0:
+                def message(user):
+                    return {
+                        "username": user.username,
+                        "user_id": user.user_id
+                    }
+
+                response_payload['results'] = [message(user) for user in users]
+
+            if len(missing_user_ids) > 0:
+                def message(user_id):
+                    return {
+                        "message": "Unable to find user_id",
+                        "key": "user_id",
+                        "value": user_id
+                    }
+
+                response_payload['errors'] = [message(user_id) for user_id in missing_user_ids]
+
+            self.write(response_payload)
+            self.set_status(200)
+            self.finish()
+
     return tornado.web.Application([
         (r"/login", LoginHandler),
+        (r"/users/search", SearchUserHandler),
         (r"/users/(.*)", UpdateUserHandler),
         (r"/users", CreateUserHandler),
         (r".*", MainHandler)

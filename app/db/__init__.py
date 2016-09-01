@@ -14,3 +14,6 @@ class DBAdapter:
 
     def update_user_password(self, user_id, password):
         pass
+
+    def search_for_users(self, user_ids):
+        pass
