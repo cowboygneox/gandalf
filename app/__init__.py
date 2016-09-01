@@ -1,7 +1,9 @@
+import base64
 import json
 import os
 import uuid
 
+import jwt
 import redis
 import tornado.httpclient
 import tornado.ioloop
@@ -16,16 +18,36 @@ from app.db.postgres_adapter import PostgresAdapter
 def make_app(config: GandalfConfiguration):
     cache = redis.StrictRedis(host=os.getenv("GANDALF_REDIS_HOST", "localhost"), port=6379)
 
+    def generate_token(user):
+        token_payload = {
+            "user_id": user.user_id
+        }
+
+        return base64.b64encode(jwt.encode(
+            token_payload,
+            config.signing_secret,
+            algorithm='HS256'
+        )).decode()
+
+    def decode_token(token):
+        return jwt.decode(base64.b64decode(token), key=config.signing_secret)['user_id']
+
     def user_authenticated(block):
         def wrapper(self):
             authorization = self.request.headers.get_list('Authorization')
             if len(authorization) == 0:
                 self.send_error(401)
             else:
-                token = authorization[0].replace("Bearer ", "").strip()
-                user = cache.get(token)
-                if user:
-                    block(self, user)
+                try:
+                    token = authorization[0].replace("Bearer ", "").strip()
+                    cached_user_id = cache.get(token).decode()
+                    decoded_user_id = decode_token(token)
+                except Exception as e:
+                    self.send_error(401)
+                    return
+
+                if decoded_user_id == cached_user_id:
+                    block(self, cached_user_id)
                 else:
                     self.send_error(401)
 
@@ -60,7 +82,7 @@ def make_app(config: GandalfConfiguration):
                     if cached_token:
                         token = cached_token.decode()
                     else:
-                        token = str(uuid.uuid1())
+                        token = generate_token(user)
                         cache.set(token, user.user_id)
                         cache.set(user.user_id, token)
                     self.write(json.dumps({"access_token": token}))
