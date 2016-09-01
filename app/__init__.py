@@ -97,7 +97,7 @@ def make_app(config: GandalfConfiguration):
         def wrapper(self, *args, **kwargs):
             hostname = self.request.host.split(":")[0]
             if not hostname in config.allowed_hosts:
-                self.send_error(401)
+                self.send_error(404)
             else:
                 block(self, *args, **kwargs)
 
