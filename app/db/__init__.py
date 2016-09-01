@@ -17,3 +17,9 @@ class DBAdapter:
 
     def search_for_users(self, user_ids):
         pass
+
+    def deactivate_user(self, user_id):
+        pass
+
+    def reactivate_user(self, user_id):
+        pass

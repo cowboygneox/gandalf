@@ -22,7 +22,19 @@ class PostgresAdapter(DBAdapter):
         conn = self._new_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, username TEXT UNIQUE, password TEXT)")
+            "CREATE TABLE IF NOT EXISTS users ("
+            "  user_id TEXT PRIMARY KEY,"
+            "  username TEXT UNIQUE,"
+            "  password TEXT"
+            ")"
+        )
+        cursor.execute(
+            "CREATE TABLE IF NOT EXISTS deactivated_users ("
+            "  user_id TEXT PRIMARY KEY,"
+            "  username TEXT UNIQUE,"
+            "  password TEXT"
+            ")"
+        )
         conn.commit()
 
     def get_user(self, username) -> User:
@@ -49,3 +61,19 @@ class PostgresAdapter(DBAdapter):
         cursor = conn.cursor()
         cursor.execute("SELECT user_id, username, password FROM users WHERE user_id = ANY(%s)", [user_ids]),
         return [self._user_row_mapper(row) for row in cursor]
+
+    def deactivate_user(self, user_id):
+        conn = self._new_connection()
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO deactivated_users (user_id, username, password)"
+                       "SELECT user_id, username, password FROM users WHERE user_id = %s", [user_id])
+        cursor.execute("DELETE FROM users WHERE user_id = %s", [user_id]),
+        conn.commit()
+
+    def reactivate_user(self, user_id):
+        conn = self._new_connection()
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO users (user_id, username, password)"
+                       "SELECT user_id, username, password FROM deactivated_users WHERE user_id = %s", [user_id])
+        cursor.execute("DELETE FROM deactivated_users WHERE user_id = %s", [user_id]),
+        conn.commit()

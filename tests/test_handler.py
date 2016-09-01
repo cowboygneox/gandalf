@@ -28,6 +28,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         conn = psycopg2.connect(host="localhost", user="postgres")
         cursor = conn.cursor()
         cursor.execute("DROP TABLE IF EXISTS users")
+        cursor.execute("DROP TABLE IF EXISTS deactivated_users")
         conn.commit()
 
         app = make_app(GandalfConfiguration('localhost:8889', PostgresAdapter(), ['localhost']))

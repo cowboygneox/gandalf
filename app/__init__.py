@@ -58,6 +58,7 @@ def make_app(config: GandalfConfiguration):
                 if pwd_context.verify(password, user.hashed_password):
                     token = str(uuid.uuid1())
                     cache.set(token, user.user_id)
+                    cache.set(user.user_id, token)
                     self.write(json.dumps({"access_token": token}))
                     self.set_status(200)
                     self.finish()
@@ -103,6 +104,26 @@ def make_app(config: GandalfConfiguration):
             self.set_status(200)
             self.finish()
 
+    class DeactivateUserHandler(tornado.web.RequestHandler):
+        @internal_only
+        def post(self, user_id):
+            token = cache.get(user_id)
+            cache.delete(user_id)
+            cache.delete(token)
+
+            config.db_adapter.deactivate_user(user_id)
+
+            self.set_status(200)
+            self.finish()
+
+    class ReactivateUserHandler(tornado.web.RequestHandler):
+        @internal_only
+        def post(self, user_id):
+            config.db_adapter.reactivate_user(user_id)
+
+            self.set_status(200)
+            self.finish()
+
     class SearchUserHandler(tornado.web.RequestHandler):
         @internal_only
         def post(self):
@@ -141,6 +162,8 @@ def make_app(config: GandalfConfiguration):
     return tornado.web.Application([
         (r"/login", LoginHandler),
         (r"/users/search", SearchUserHandler),
+        (r"/users/(.*)/deactivate", DeactivateUserHandler),
+        (r"/users/(.*)/reactivate", ReactivateUserHandler),
         (r"/users/(.*)", UpdateUserHandler),
         (r"/users", CreateUserHandler),
         (r".*", MainHandler)

@@ -28,6 +28,7 @@ class UserManagementTest(tornado.testing.AsyncHTTPTestCase):
         conn = psycopg2.connect(host="localhost", user="postgres")
         cursor = conn.cursor()
         cursor.execute("DROP TABLE IF EXISTS users")
+        cursor.execute("DROP TABLE IF EXISTS deactivated_users")
         conn.commit()
 
         app = make_app(GandalfConfiguration('localhost:8889', PostgresAdapter(), ['localhost']))
@@ -71,4 +72,47 @@ class UserManagementTest(tornado.testing.AsyncHTTPTestCase):
         self.assertIsNotNone(json.loads(response.body.decode())["access_token"])
 
         response = self.fetch("/users/{}".format(user_id), method="POST", body="password=test2")
+        self.assertEqual(response.code, 200)
+
+    def test_deactivate_reactivate_user(self):
+        os.putenv("NEXT_HOST", "http://localhost:8889")
+        background_app = tornado.web.Application([
+            (r".*", TestHandler),
+        ])
+        background_app.listen(8889)
+
+        response = self.fetch("/")
+        self.assertEqual(response.code, 401)
+
+        response = self.fetch("/users", method="POST", body="username=test&password=test")
+        self.assertEqual(response.code, 201)
+        user_id = response.headers["USER_ID"]
+        self.assertIsNotNone(user_id)
+
+        response = self.fetch("/login", method="POST", body="username=test&password=test")
+        self.assertEqual(response.code, 200)
+        token = json.loads(response.body.decode())["access_token"]
+        self.assertIsNotNone(token)
+
+        response = self.fetch("/", headers={"Authorization": "Bearer {}".format(token)})
+        self.assertEqual(response.code, 200)
+
+        response = self.fetch("/users/{}/deactivate".format(user_id), method="POST", body="")
+        self.assertEqual(response.code, 200)
+
+        response = self.fetch("/", headers={"Authorization": "Bearer {}".format(token)})
+        self.assertEqual(response.code, 401)
+
+        response = self.fetch("/login", method="POST", body="username=test&password=test")
+        self.assertEqual(response.code, 401)
+
+        response = self.fetch("/users/{}/reactivate".format(user_id), method="POST", body="")
+        self.assertEqual(response.code, 200)
+
+        response = self.fetch("/login", method="POST", body="username=test&password=test")
+        self.assertEqual(response.code, 200)
+        token = json.loads(response.body.decode())["access_token"]
+        self.assertIsNotNone(token)
+
+        response = self.fetch("/", headers={"Authorization": "Bearer {}".format(token)})
         self.assertEqual(response.code, 200)
