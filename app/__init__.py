@@ -59,6 +59,8 @@ def make_app(config: GandalfConfiguration):
                 if response.body:
                     self.write(response.body)
                 self.set_status(response.code)
+                for header_name in response.headers:
+                    self.add_header(header_name, response.headers[header_name])
                 self.finish()
 
             url = "http://{}/{}".format(config.proxy_host, self.request.uri)
@@ -69,9 +71,9 @@ def make_app(config: GandalfConfiguration):
             else:
                 body = self.request.body
 
-            headers = {
-                "USER_ID": user_id
-            }
+            headers = {header_name: self.request.headers[header_name] for header_name in self.request.headers}
+
+            headers['USER_ID'] = user_id
 
             req = tornado.httpclient.HTTPRequest(url, method=method, body=body, headers=headers)
             client = tornado.httpclient.AsyncHTTPClient()

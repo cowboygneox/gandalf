@@ -69,6 +69,50 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         self.assertEqual(response.body.decode(), "this works")
 
     @login
+    def test_get_400(self, token):
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def get(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                self.set_status(400)
+                self.write("the request was missing some parameter")
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", headers={"Authorization": "Bearer {}".format(token)})
+        self.assertEqual(response.code, 400)
+        self.assertEqual(response.body.decode(), "the request was missing some parameter")
+
+    @login
+    def test_get_404(self, token):
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def get(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                self.set_status(404)
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", headers={"Authorization": "Bearer {}".format(token)})
+        self.assertEqual(response.code, 404)
+
+    @login
+    def test_get_500(self, token):
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def get(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                self.set_status(500)
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", headers={"Authorization": "Bearer {}".format(token)})
+        self.assertEqual(response.code, 500)
+
+    @login
     def test_post_200(self, token):
         test_self = self
 
@@ -82,3 +126,65 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         response = self.fetch("/", method="POST", headers={"Authorization": "Bearer {}".format(token)}, body="")
         self.assertEqual(response.code, 200)
         self.assertEqual(response.body.decode(), "this works")
+
+    @login
+    def test_post_400(self, token):
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def post(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                self.set_status(400)
+                self.write("the request was missing some parameter")
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", method="POST", headers={"Authorization": "Bearer {}".format(token)}, body="")
+        self.assertEqual(response.code, 400)
+        self.assertEqual(response.body.decode(), "the request was missing some parameter")
+
+
+    @login
+    def test_post_404(self, token):
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def post(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                self.set_status(404)
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", method="POST", headers={"Authorization": "Bearer {}".format(token)}, body="")
+        self.assertEqual(response.code, 404)
+
+    @login
+    def test_post_500(self, token):
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def post(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                self.set_status(500)
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", method="POST", headers={"Authorization": "Bearer {}".format(token)}, body="")
+        self.assertEqual(response.code, 500)
+
+    @login
+    def test_get_propagates_headers(self, token):
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def post(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['A_HEADER'], "a_value")
+                self.add_header("SOME_HEADER", "some_value")
+                self.set_status(200)
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", method="POST", headers={"Authorization": "Bearer {}".format(token), "A_HEADER": "a_value"}, body="")
+        self.assertEqual(response.code, 200)
+        self.assertEqual(response.headers['SOME_HEADER'], "some_value")
