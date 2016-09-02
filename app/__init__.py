@@ -79,7 +79,7 @@ def make_app(config: GandalfConfiguration):
             url = "http://{}/{}".format(config.proxy_host, self.request.uri)
             method = self.request.method
 
-            if method == "GET":
+            if method == "GET" or method == "DELETE":
                 body = None
             else:
                 body = self.request.body
@@ -100,6 +100,21 @@ def make_app(config: GandalfConfiguration):
         @user_authenticated
         @tornado.web.asynchronous
         def post(self, user_id):
+            self.passthru(user_id)
+
+        @user_authenticated
+        @tornado.web.asynchronous
+        def put(self, user_id):
+            self.passthru(user_id)
+
+        @user_authenticated
+        @tornado.web.asynchronous
+        def delete(self, user_id):
+            self.passthru(user_id)
+
+        @user_authenticated
+        @tornado.web.asynchronous
+        def patch(self, user_id):
             self.passthru(user_id)
 
     class WebsocketHandler(tornado.websocket.WebSocketHandler):

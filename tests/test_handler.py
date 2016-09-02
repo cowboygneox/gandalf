@@ -173,6 +173,186 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         self.assertEqual(response.code, 500)
 
     @login
+    def test_put_200(self, token):
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def put(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                self.write("this works")
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", method="PUT", headers={"Authorization": "Bearer {}".format(token)}, body="")
+        self.assertEqual(response.code, 200)
+        self.assertEqual(response.body.decode(), "this works")
+
+    @login
+    def test_put_400(self, token):
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def put(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                self.set_status(400)
+                self.write("the request was missing some parameter")
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", method="PUT", headers={"Authorization": "Bearer {}".format(token)}, body="")
+        self.assertEqual(response.code, 400)
+        self.assertEqual(response.body.decode(), "the request was missing some parameter")
+
+
+    @login
+    def test_put_404(self, token):
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def put(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                self.set_status(404)
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", method="PUT", headers={"Authorization": "Bearer {}".format(token)}, body="")
+        self.assertEqual(response.code, 404)
+
+    @login
+    def test_put_500(self, token):
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def put(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                self.set_status(500)
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", method="PUT", headers={"Authorization": "Bearer {}".format(token)}, body="")
+        self.assertEqual(response.code, 500)
+
+    @login
+    def test_delete_200(self, token):
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def delete(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                self.write("this works")
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", method="DELETE", headers={"Authorization": "Bearer {}".format(token)})
+        self.assertEqual(response.code, 200)
+        self.assertEqual(response.body.decode(), "this works")
+
+    @login
+    def test_delete_400(self, token):
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def delete(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                self.set_status(400)
+                self.write("the request was missing some parameter")
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", method="DELETE", headers={"Authorization": "Bearer {}".format(token)})
+        self.assertEqual(response.code, 400)
+        self.assertEqual(response.body.decode(), "the request was missing some parameter")
+
+
+    @login
+    def test_delete_404(self, token):
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def delete(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                self.set_status(404)
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", method="DELETE", headers={"Authorization": "Bearer {}".format(token)})
+        self.assertEqual(response.code, 404)
+
+    @login
+    def test_delete_500(self, token):
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def delete(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                self.set_status(500)
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", method="DELETE", headers={"Authorization": "Bearer {}".format(token)})
+        self.assertEqual(response.code, 500)
+
+    @login
+    def test_patch_200(self, token):
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def patch(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                self.write("this works")
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", method="PATCH", headers={"Authorization": "Bearer {}".format(token)}, body="")
+        self.assertEqual(response.code, 200)
+        self.assertEqual(response.body.decode(), "this works")
+
+    @login
+    def test_patch_400(self, token):
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def patch(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                self.set_status(400)
+                self.write("the request was missing some parameter")
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", method="PATCH", headers={"Authorization": "Bearer {}".format(token)}, body="")
+        self.assertEqual(response.code, 400)
+        self.assertEqual(response.body.decode(), "the request was missing some parameter")
+
+
+    @login
+    def test_patch_404(self, token):
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def patch(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                self.set_status(404)
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", method="PATCH", headers={"Authorization": "Bearer {}".format(token)}, body="")
+        self.assertEqual(response.code, 404)
+
+    @login
+    def test_patch_500(self, token):
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def patch(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                self.set_status(500)
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", method="PATCH", headers={"Authorization": "Bearer {}".format(token)}, body="")
+        self.assertEqual(response.code, 500)
+
+    @login
     def test_get_propagates_headers(self, token):
         test_self = self
 
