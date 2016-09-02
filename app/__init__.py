@@ -8,9 +8,10 @@ import redis
 import tornado.httpclient
 import tornado.ioloop
 import tornado.web
+import tornado.websocket
 from passlib.apps import custom_app_context as pwd_context
 
-from app.config import GandalfConfiguration
+from app.config import GandalfConfiguration, WEBSOCKET
 from app.db import User
 from app.db.postgres_adapter import PostgresAdapter
 
@@ -32,28 +33,40 @@ def make_app(config: GandalfConfiguration):
     def decode_token(token):
         return jwt.decode(base64.b64decode(token), key=config.signing_secret)['user_id']
 
-    def user_authenticated(block):
+    def base_authenticated(block, failure_block):
         def wrapper(self):
             authorization = self.request.headers.get_list('Authorization')
             if len(authorization) == 0:
-                self.send_error(401)
+                failure_block(self)
             else:
                 try:
                     token = authorization[0].replace("Bearer ", "").strip()
                     cached_user_id = cache.get(token).decode()
                     decoded_user_id = decode_token(token)
                 except Exception as e:
-                    self.send_error(401)
+                    failure_block(self)
                     return
 
                 if decoded_user_id == cached_user_id:
                     block(self, cached_user_id)
                 else:
-                    self.send_error(401)
+                    failure_block(self)
 
         return wrapper
 
-    class MainHandler(tornado.web.RequestHandler):
+    def user_authenticated(block):
+        def failure(self):
+            self.send_error(401)
+
+        return base_authenticated(block, failure)
+
+    def ws_user_authenticated(block):
+        def failure(self):
+            self.close(code=401)
+
+        return base_authenticated(block, failure)
+
+    class RestHandler(tornado.web.RequestHandler):
         def passthru(self, user_id):
             def callback(response):
                 if response.body:
@@ -88,6 +101,30 @@ def make_app(config: GandalfConfiguration):
         @tornado.web.asynchronous
         def post(self, user_id):
             self.passthru(user_id)
+
+    class WebsocketHandler(tornado.websocket.WebSocketHandler):
+        def __init__(self, application, request, **kwargs):
+            super().__init__(application, request, **kwargs)
+            self.active = False
+            self.proxy = None
+
+        @ws_user_authenticated
+        def open(self, *args, **kwargs):
+            url = "ws://{}/{}".format(config.proxy_host, self.request.uri)
+            tornado.websocket.websocket_connect(url, callback=self.on_proxy_connected, on_message_callback=self.on_message)
+
+        def on_proxy_connected(self, future):
+            self.proxy = future.result()
+            self.active = True
+
+        def on_message(self, message):
+            if self.active:
+                self.write_message(message)
+
+        def on_close(self):
+            self.active = False
+            if self.proxy:
+                self.proxy.close()
 
     class LoginHandler(tornado.web.RequestHandler):
         def post(self):
@@ -205,6 +242,11 @@ def make_app(config: GandalfConfiguration):
             self.set_status(200)
             self.finish()
 
+    if config.mode == WEBSOCKET:
+        handler = WebsocketHandler
+    else:
+        handler = RestHandler
+
     return tornado.web.Application([
         (r"/login", LoginHandler),
         (r"/users/search", SearchUserHandler),
@@ -212,5 +254,5 @@ def make_app(config: GandalfConfiguration):
         (r"/users/(.*)/reactivate", ReactivateUserHandler),
         (r"/users/(.*)", UpdateUserHandler),
         (r"/users", CreateUserHandler),
-        (r".*", MainHandler)
+        (r".*", handler)
     ])
