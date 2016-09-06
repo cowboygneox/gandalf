@@ -10,10 +10,11 @@ class PostgresAdapter(DBAdapter):
     @staticmethod
     def _new_connection():
         host = os.getenv("GANDALF_POSTGRES_HOST", "localhost")
-        user = os.getenv("GANDALF_POSTGRES_USER", "postgres")
         port = os.getenv("GANDALF_POSTGRES_PORT", "5432")
+        database = os.getenv("GANDALF_POSTGRES_DB", None)
+        user = os.getenv("GANDALF_POSTGRES_USER", "postgres")
         password = os.getenv("GANDALF_POSTGRES_PASSWORD", "postgres")
-        return psycopg2.connect(host=host, port=port, user=user, password=password)
+        return psycopg2.connect(host=host, port=port, user=user, password=password, database=database)
 
     @staticmethod
     def _user_row_mapper(row):
