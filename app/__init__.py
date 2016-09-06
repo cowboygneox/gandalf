@@ -66,17 +66,22 @@ def make_app(config: GandalfConfiguration):
 
         return base_authenticated(block, failure)
 
+    def passthru_headers():
+        return {
+            'Content-Type'
+        }
+
     class RestHandler(tornado.web.RequestHandler):
         def passthru(self, user_id):
             def callback(response):
                 if response.body:
                     self.write(response.body)
                 self.set_status(response.code)
-                for header_name in response.headers:
-                    self.add_header(header_name, response.headers[header_name])
+                for header_name in filter(lambda header_name: header_name in passthru_headers(), response.headers):
+                    self.set_header(header_name, response.headers[header_name])
                 self.finish()
 
-            url = "http://{}/{}".format(config.proxy_host, self.request.uri)
+            url = "http://{}{}".format(config.proxy_host, self.request.uri)
             method = self.request.method
 
             if method == "GET" or method == "DELETE":
@@ -263,11 +268,11 @@ def make_app(config: GandalfConfiguration):
         handler = RestHandler
 
     return tornado.web.Application([
-        (r"/login", LoginHandler),
-        (r"/users/search", SearchUserHandler),
-        (r"/users/(.*)/deactivate", DeactivateUserHandler),
-        (r"/users/(.*)/reactivate", ReactivateUserHandler),
-        (r"/users/(.*)", UpdateUserHandler),
-        (r"/users", CreateUserHandler),
+        (r"/auth/login", LoginHandler),
+        (r"/auth/users/search", SearchUserHandler),
+        (r"/auth/users/(.*)/deactivate", DeactivateUserHandler),
+        (r"/auth/users/(.*)/reactivate", ReactivateUserHandler),
+        (r"/auth/users/(.*)", UpdateUserHandler),
+        (r"/auth/users", CreateUserHandler),
         (r".*", handler)
     ])
