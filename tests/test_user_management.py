@@ -45,10 +45,10 @@ class UserManagementTest(tornado.testing.AsyncHTTPTestCase):
         response = self.fetch("/")
         self.assertEqual(response.code, 401)
 
-        response = self.fetch("/users", method="POST", body="username=test&password=test")
+        response = self.fetch("/auth/users", method="POST", body="username=test&password=test")
         self.assertEqual(response.code, 201)
 
-        response = self.fetch("/login", method="POST", body="username=test&password=test")
+        response = self.fetch("/auth/login", method="POST", body="username=test&password=test")
         self.assertEqual(response.code, 200)
         self.assertIsNotNone(json.loads(response.body.decode())["access_token"])
 
@@ -62,16 +62,16 @@ class UserManagementTest(tornado.testing.AsyncHTTPTestCase):
         response = self.fetch("/")
         self.assertEqual(response.code, 401)
 
-        response = self.fetch("/users", method="POST", body="username=test&password=test")
+        response = self.fetch("/auth/users", method="POST", body="username=test&password=test")
         self.assertEqual(response.code, 201)
         user_id = response.headers["USER_ID"]
         self.assertIsNotNone(user_id)
 
-        response = self.fetch("/login", method="POST", body="username=test&password=test")
+        response = self.fetch("/auth/login", method="POST", body="username=test&password=test")
         self.assertEqual(response.code, 200)
         self.assertIsNotNone(json.loads(response.body.decode())["access_token"])
 
-        response = self.fetch("/users/{}".format(user_id), method="POST", body="password=test2")
+        response = self.fetch("/auth/users/{}".format(user_id), method="POST", body="password=test2")
         self.assertEqual(response.code, 200)
 
     def test_deactivate_reactivate_user(self):
@@ -84,12 +84,12 @@ class UserManagementTest(tornado.testing.AsyncHTTPTestCase):
         response = self.fetch("/")
         self.assertEqual(response.code, 401)
 
-        response = self.fetch("/users", method="POST", body="username=test&password=test")
+        response = self.fetch("/auth/users", method="POST", body="username=test&password=test")
         self.assertEqual(response.code, 201)
         user_id = response.headers["USER_ID"]
         self.assertIsNotNone(user_id)
 
-        response = self.fetch("/login", method="POST", body="username=test&password=test")
+        response = self.fetch("/auth/login", method="POST", body="username=test&password=test")
         self.assertEqual(response.code, 200)
         token = json.loads(response.body.decode())["access_token"]
         self.assertIsNotNone(token)
@@ -97,19 +97,19 @@ class UserManagementTest(tornado.testing.AsyncHTTPTestCase):
         response = self.fetch("/", headers={"Authorization": "Bearer {}".format(token)})
         self.assertEqual(response.code, 200)
 
-        response = self.fetch("/users/{}/deactivate".format(user_id), method="POST", body="")
+        response = self.fetch("/auth/users/{}/deactivate".format(user_id), method="POST", body="")
         self.assertEqual(response.code, 200)
 
         response = self.fetch("/", headers={"Authorization": "Bearer {}".format(token)})
         self.assertEqual(response.code, 401)
 
-        response = self.fetch("/login", method="POST", body="username=test&password=test")
+        response = self.fetch("/auth/login", method="POST", body="username=test&password=test")
         self.assertEqual(response.code, 401)
 
-        response = self.fetch("/users/{}/reactivate".format(user_id), method="POST", body="")
+        response = self.fetch("/auth/users/{}/reactivate".format(user_id), method="POST", body="")
         self.assertEqual(response.code, 200)
 
-        response = self.fetch("/login", method="POST", body="username=test&password=test")
+        response = self.fetch("/auth/login", method="POST", body="username=test&password=test")
         self.assertEqual(response.code, 200)
         token = json.loads(response.body.decode())["access_token"]
         self.assertIsNotNone(token)

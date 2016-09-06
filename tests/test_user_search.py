@@ -28,7 +28,7 @@ class UserSearchTest(tornado.testing.AsyncHTTPTestCase):
         return app
 
     def test_search_for_single_user_id(self):
-        response = self.fetch("/users/search", method="POST", body="user_id=asdf")
+        response = self.fetch("/auth/users/search", method="POST", body="user_id=asdf")
         self.assertEqual(response.code, 200)
         json_payload = {
             "errors": [{
@@ -39,11 +39,11 @@ class UserSearchTest(tornado.testing.AsyncHTTPTestCase):
         }
         self.assertEqual(json.loads(response.body.decode()), json_payload)
 
-        response = self.fetch("/users", method="POST", body="username=test&password=test")
+        response = self.fetch("/auth/users", method="POST", body="username=test&password=test")
         self.assertEqual(response.code, 201)
         user_id = response.headers['USER_ID']
 
-        response = self.fetch("/users/search", method="POST", body="user_id={}".format(user_id))
+        response = self.fetch("/auth/users/search", method="POST", body="user_id={}".format(user_id))
         self.assertEqual(response.code, 200)
         json_payload = {
             "results": [{
@@ -58,7 +58,7 @@ class UserSearchTest(tornado.testing.AsyncHTTPTestCase):
         user_id2 = str(uuid.uuid1())
         user_id3 = str(uuid.uuid1())
 
-        response = self.fetch("/users/search", method="POST",
+        response = self.fetch("/auth/users/search", method="POST",
                               body="user_id={}&user_id={}&user_id={}".format(user_id1, user_id2, user_id3))
         self.assertEqual(response.code, 200)
         json_payload = {
@@ -78,11 +78,11 @@ class UserSearchTest(tornado.testing.AsyncHTTPTestCase):
         }
         self.assertEqual(json.loads(response.body.decode()), json_payload)
 
-        response = self.fetch("/users", method="POST", body="username=test&password=test")
+        response = self.fetch("/auth/users", method="POST", body="username=test&password=test")
         self.assertEqual(response.code, 201)
         user_id1 = response.headers['USER_ID']
 
-        response = self.fetch("/users/search", method="POST",
+        response = self.fetch("/auth/users/search", method="POST",
                               body="user_id={}&user_id={}&user_id={}".format(user_id1, user_id2, user_id3))
         self.assertEqual(response.code, 200)
         json_payload = {
@@ -102,11 +102,11 @@ class UserSearchTest(tornado.testing.AsyncHTTPTestCase):
         }
         self.assertEqual(json.loads(response.body.decode()), json_payload)
 
-        response = self.fetch("/users", method="POST", body="username=test2&password=test2")
+        response = self.fetch("/auth/users", method="POST", body="username=test2&password=test2")
         self.assertEqual(response.code, 201)
         user_id2 = response.headers['USER_ID']
 
-        response = self.fetch("/users/search", method="POST",
+        response = self.fetch("/auth/users/search", method="POST",
                               body="user_id={}&user_id={}&user_id={}".format(user_id1, user_id2, user_id3))
         self.assertEqual(response.code, 200)
         json_payload = {
@@ -125,11 +125,11 @@ class UserSearchTest(tornado.testing.AsyncHTTPTestCase):
         }
         self.assertEqual(json.loads(response.body.decode()), json_payload)
 
-        response = self.fetch("/users", method="POST", body="username=test3&password=test3")
+        response = self.fetch("/auth/users", method="POST", body="username=test3&password=test3")
         self.assertEqual(response.code, 201)
         user_id3 = response.headers['USER_ID']
 
-        response = self.fetch("/users/search", method="POST",
+        response = self.fetch("/auth/users/search", method="POST",
                               body="user_id={}&user_id={}&user_id={}".format(user_id1, user_id2, user_id3))
         self.assertEqual(response.code, 200)
         json_payload = {

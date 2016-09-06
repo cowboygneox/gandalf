@@ -27,14 +27,14 @@ class LoginTest(tornado.testing.AsyncHTTPTestCase):
         return app
 
     def test_break_login(self):
-        response = self.fetch("/users", method="POST", body="username=test&password=test")
+        response = self.fetch("/auth/users", method="POST", body="username=test&password=test")
         self.assertEqual(response.code, 201)
 
         def should_fail_login(body):
-            self.assertEqual(self.fetch("/login", method="POST", body=body).code, 401)
+            self.assertEqual(self.fetch("/auth/login", method="POST", body=body).code, 401)
 
         def should_succeed_login(body):
-            self.assertEqual(self.fetch("/login", method="POST", body=body).code, 200)
+            self.assertEqual(self.fetch("/auth/login", method="POST", body=body).code, 200)
 
         should_fail_login("")
         should_fail_login("username=")
@@ -50,13 +50,13 @@ class LoginTest(tornado.testing.AsyncHTTPTestCase):
         should_succeed_login("username=test&password=test")
 
     def test_multiple_logins_return_same_token(self):
-        response = self.fetch("/users", method="POST", body="username=test&password=test")
+        response = self.fetch("/auth/users", method="POST", body="username=test&password=test")
         self.assertEqual(response.code, 201)
 
-        response = self.fetch("/login", method="POST", body="username=test&password=test")
+        response = self.fetch("/auth/login", method="POST", body="username=test&password=test")
         token1 = json.loads(response.body.decode())['access_token']
 
-        response = self.fetch("/login", method="POST", body="username=test&password=test")
+        response = self.fetch("/auth/login", method="POST", body="username=test&password=test")
         token2 = json.loads(response.body.decode())['access_token']
 
         self.assertEqual(token1, token2)

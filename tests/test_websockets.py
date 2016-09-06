@@ -41,10 +41,10 @@ class WebsocketTest(tornado.testing.AsyncHTTPTestCase):
         ])
         background_app.listen(8889)
 
-        response = await self.http_client.fetch("http://localhost:8888/users", method="POST", body="username=test&password=test")
+        response = await self.http_client.fetch("http://localhost:8888/auth/users", method="POST", body="username=test&password=test")
         self.assertEqual(response.code, 201)
 
-        response = await self.http_client.fetch("http://localhost:8888/login", method="POST", body="username=test&password=test")
+        response = await self.http_client.fetch("http://localhost:8888/auth/login", method="POST", body="username=test&password=test")
         self.assertEqual(response.code, 200)
         token = json.loads(response.body.decode())["access_token"]
 
