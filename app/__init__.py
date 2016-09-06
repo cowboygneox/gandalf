@@ -243,7 +243,7 @@ def make_app(config: GandalfConfiguration):
                 def message(user):
                     return {
                         "username": user.username,
-                        "user_id": user.user_id
+                        "userId": user.user_id
                     }
 
                 response_payload['results'] = [message(user) for user in users]

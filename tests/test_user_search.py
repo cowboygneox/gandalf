@@ -48,7 +48,7 @@ class UserSearchTest(tornado.testing.AsyncHTTPTestCase):
         json_payload = {
             "results": [{
                 "username": "test",
-                "user_id": user_id
+                "userId": user_id
             }]
         }
         self.assertEqual(json.loads(response.body.decode()), json_payload)
@@ -88,7 +88,7 @@ class UserSearchTest(tornado.testing.AsyncHTTPTestCase):
         json_payload = {
             "results": [{
                 "username": "test",
-                "user_id": user_id1
+                "userId": user_id1
             }],
             "errors": [{
                 "message": "Unable to find user_id",
@@ -112,10 +112,10 @@ class UserSearchTest(tornado.testing.AsyncHTTPTestCase):
         json_payload = {
             "results": [{
                 "username": "test",
-                "user_id": user_id1
+                "userId": user_id1
             }, {
                 "username": "test2",
-                "user_id": user_id2
+                "userId": user_id2
             }],
             "errors": [{
                 "message": "Unable to find user_id",
@@ -135,13 +135,13 @@ class UserSearchTest(tornado.testing.AsyncHTTPTestCase):
         json_payload = {
             "results": [{
                 "username": "test",
-                "user_id": user_id1
+                "userId": user_id1
             }, {
                 "username": "test2",
-                "user_id": user_id2
+                "userId": user_id2
             }, {
                 "username": "test3",
-                "user_id": user_id3
+                "userId": user_id3
             }]
         }
         self.assertEqual(json.loads(response.body.decode()), json_payload)
