@@ -9,7 +9,11 @@ from app.db import DBAdapter, User
 class PostgresAdapter(DBAdapter):
     @staticmethod
     def _new_connection():
-        return psycopg2.connect(host=os.getenv("GANDALF_POSTGRES_HOST", "localhost"), user="postgres")
+        host = os.getenv("GANDALF_POSTGRES_HOST", "localhost")
+        user = os.getenv("GANDALF_POSTGRES_USER", "postgres")
+        port = os.getenv("GANDALF_POSTGRES_PORT", "5432")
+        password = os.getenv("GANDALF_POSTGRES_PASSWORD", "postgres")
+        return psycopg2.connect(host=host, port=port, user=user, password=password)
 
     @staticmethod
     def _user_row_mapper(row):
