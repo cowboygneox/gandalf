@@ -62,10 +62,16 @@ class PostgresAdapter(DBAdapter):
         cursor.execute("UPDATE gandalf.users SET password = %s WHERE user_id = %s", [password, user_id]),
         conn.commit()
 
-    def search_for_users(self, user_ids):
+    def search_for_users_by_id(self, user_ids):
         conn = self._new_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT user_id, username, password FROM gandalf.users WHERE user_id = ANY(%s)", [user_ids]),
+        return [self._user_row_mapper(row) for row in cursor]
+
+    def search_for_users_by_username(self, usernames):
+        conn = self._new_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT user_id, username, password FROM gandalf.users WHERE username = ANY(%s)", [usernames]),
         return [self._user_row_mapper(row) for row in cursor]
 
     def deactivate_user(self, user_id):

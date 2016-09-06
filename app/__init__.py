@@ -228,11 +228,8 @@ def make_app(config: GandalfConfiguration):
             self.finish()
 
     class SearchUserHandler(tornado.web.RequestHandler):
-        @internal_only
-        def post(self):
-            user_ids = self.get_body_arguments("user_id")
-
-            users = config.db_adapter.search_for_users(user_ids)
+        def search_with_user_ids(self, user_ids):
+            users = config.db_adapter.search_for_users_by_id(user_ids)
 
             found_user_ids = [user.user_id for user in users]
             missing_user_ids = list(filter(lambda user_id: user_id not in found_user_ids, user_ids))
@@ -261,6 +258,55 @@ def make_app(config: GandalfConfiguration):
             self.write(response_payload)
             self.set_status(200)
             self.finish()
+
+        def search_with_usernames(self, usernames):
+            users = config.db_adapter.search_for_users_by_username(usernames)
+
+            found_usernames = [user.username for user in users]
+            missing_usernames = list(filter(lambda username: username not in found_usernames, usernames))
+
+            response_payload = {}
+
+            if len(users) > 0:
+                def message(user):
+                    return {
+                        "username": user.username,
+                        "userId": user.user_id
+                    }
+
+                response_payload['results'] = [message(user) for user in users]
+
+            if len(missing_usernames) > 0:
+                def message(username):
+                    return {
+                        "message": "Unable to find username",
+                        "key": "username",
+                        "value": username
+                    }
+
+                response_payload['errors'] = [message(username) for username in missing_usernames]
+
+            self.write(response_payload)
+            self.set_status(200)
+            self.finish()
+
+        @internal_only
+        def post(self):
+            user_ids = self.get_body_arguments("user_id")
+            usernames = self.get_body_arguments("username")
+
+            if len(user_ids) > 0 and len(usernames) > 0:
+                self.set_status(400)
+                self.write("Cannot search with both 'user_id' and 'username'. Please choose one.")
+                self.finish()
+            elif len(user_ids) > 0:
+                self.search_with_user_ids(user_ids)
+            elif len(usernames) > 0:
+                self.search_with_usernames(usernames)
+            else:
+                self.write({'results': []})
+                self.set_status(200)
+                self.finish()
 
     if config.mode == WEBSOCKET:
         handler = WebsocketHandler

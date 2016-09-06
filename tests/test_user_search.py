@@ -53,6 +53,32 @@ class UserSearchTest(tornado.testing.AsyncHTTPTestCase):
         }
         self.assertEqual(json.loads(response.body.decode()), json_payload)
 
+    def test_search_for_single_username(self):
+        response = self.fetch("/auth/users/search", method="POST", body="username=testuser")
+        self.assertEqual(response.code, 200)
+        json_payload = {
+            "errors": [{
+                "message": "Unable to find username",
+                "key": "username",
+                "value": "testuser"
+            }]
+        }
+        self.assertEqual(json.loads(response.body.decode()), json_payload)
+
+        response = self.fetch("/auth/users", method="POST", body="username=testuser&password=test")
+        self.assertEqual(response.code, 201)
+        user_id = response.headers['USER_ID']
+
+        response = self.fetch("/auth/users/search", method="POST", body="username=testuser")
+        self.assertEqual(response.code, 200)
+        json_payload = {
+            "results": [{
+                "username": "testuser",
+                "userId": user_id
+            }]
+        }
+        self.assertEqual(json.loads(response.body.decode()), json_payload)
+
     def test_search_for_many_user_ids(self):
         user_id1 = str(uuid.uuid1())
         user_id2 = str(uuid.uuid1())
@@ -145,3 +171,103 @@ class UserSearchTest(tornado.testing.AsyncHTTPTestCase):
             }]
         }
         self.assertEqual(json.loads(response.body.decode()), json_payload)
+
+    def test_search_for_many_usernames(self):
+        username1 = "testuser1"
+        username2 = "testuser2"
+        username3 = "testuser3"
+
+        response = self.fetch("/auth/users/search", method="POST",
+                              body="username={}&username={}&username={}".format(username1, username2, username3))
+        self.assertEqual(response.code, 200)
+        json_payload = {
+            "errors": [{
+                "message": "Unable to find username",
+                "key": "username",
+                "value": username1
+            }, {
+                "message": "Unable to find username",
+                "key": "username",
+                "value": username2
+            }, {
+                "message": "Unable to find username",
+                "key": "username",
+                "value": username3
+            }]
+        }
+        self.assertEqual(json.loads(response.body.decode()), json_payload)
+
+        response = self.fetch("/auth/users", method="POST", body="username={}&password=test".format(username1))
+        self.assertEqual(response.code, 201)
+        user_id1 = response.headers['USER_ID']
+
+        response = self.fetch("/auth/users/search", method="POST",
+                              body="username={}&username={}&username={}".format(username1, username2, username3))
+        self.assertEqual(response.code, 200)
+        json_payload = {
+            "results": [{
+                "username": username1,
+                "userId": user_id1
+            }],
+            "errors": [{
+                "message": "Unable to find username",
+                "key": "username",
+                "value": username2
+            }, {
+                "message": "Unable to find username",
+                "key": "username",
+                "value": username3
+            }]
+        }
+        self.assertEqual(json.loads(response.body.decode()), json_payload)
+
+        response = self.fetch("/auth/users", method="POST", body="username={}&password=test2".format(username2))
+        self.assertEqual(response.code, 201)
+        user_id2 = response.headers['USER_ID']
+
+        response = self.fetch("/auth/users/search", method="POST",
+                              body="username={}&username={}&username={}".format(username1, username2, username3))
+        self.assertEqual(response.code, 200)
+        json_payload = {
+            "results": [{
+                "username": username1,
+                "userId": user_id1
+            }, {
+                "username": username2,
+                "userId": user_id2
+            }],
+            "errors": [{
+                "message": "Unable to find username",
+                "key": "username",
+                "value": username3
+            }]
+        }
+        self.assertEqual(json.loads(response.body.decode()), json_payload)
+
+        response = self.fetch("/auth/users", method="POST", body="username={}&password=test3".format(username3))
+        self.assertEqual(response.code, 201)
+        user_id3 = response.headers['USER_ID']
+
+        response = self.fetch("/auth/users/search", method="POST",
+                              body="username={}&username={}&username={}".format(username1, username2, username3))
+        self.assertEqual(response.code, 200)
+        json_payload = {
+            "results": [{
+                "username": username1,
+                "userId": user_id1
+            }, {
+                "username": username2,
+                "userId": user_id2
+            }, {
+                "username": username3,
+                "userId": user_id3
+            }]
+        }
+        self.assertEqual(json.loads(response.body.decode()), json_payload)
+
+    def test_search_for_both_userid_and_username(self):
+        response = self.fetch("/auth/users/search", method="POST",
+                              body="username=testuser&user_id=asdf")
+
+        self.assertEqual(response.code, 400)
+        self.assertEqual(response.body.decode(), "Cannot search with both 'user_id' and 'username'. Please choose one.")

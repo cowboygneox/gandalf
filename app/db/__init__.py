@@ -15,7 +15,10 @@ class DBAdapter:
     def update_user_password(self, user_id, password):
         pass
 
-    def search_for_users(self, user_ids):
+    def search_for_users_by_id(self, user_ids):
+        pass
+
+    def search_for_users_by_username(self, usernames):
         pass
 
     def deactivate_user(self, user_id):
