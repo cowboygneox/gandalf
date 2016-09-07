@@ -21,7 +21,8 @@ def make_app(config: GandalfConfiguration):
 
     def generate_token(user):
         token_payload = {
-            "user_id": user.user_id
+            "userId": user.user_id,
+            "username": user.username
         }
 
         return base64.b64encode(jwt.encode(
@@ -31,7 +32,7 @@ def make_app(config: GandalfConfiguration):
         )).decode()
 
     def decode_token(token):
-        return jwt.decode(base64.b64decode(token), key=config.signing_secret)['user_id']
+        return jwt.decode(base64.b64decode(token), key=config.signing_secret)
 
     def base_authenticated(block, failure_block):
         def wrapper(self):
@@ -41,14 +42,14 @@ def make_app(config: GandalfConfiguration):
             else:
                 try:
                     token = authorization[0].replace("Bearer ", "").strip()
-                    cached_user_id = cache.get(token).decode()
-                    decoded_user_id = decode_token(token)
+                    cached_user = json.loads(cache.get(token).decode())
+                    decoded_user = decode_token(token)
                 except Exception as e:
                     failure_block(self)
                     return
 
-                if decoded_user_id == cached_user_id:
-                    block(self, cached_user_id)
+                if decoded_user == cached_user:
+                    block(self, cached_user)
                 else:
                     failure_block(self)
 
@@ -72,7 +73,7 @@ def make_app(config: GandalfConfiguration):
         }
 
     class RestHandler(tornado.web.RequestHandler):
-        def passthru(self, user_id):
+        def passthru(self, user):
             def callback(response):
                 if response.body:
                     self.write(response.body)
@@ -91,7 +92,8 @@ def make_app(config: GandalfConfiguration):
 
             headers = {header_name: self.request.headers[header_name] for header_name in self.request.headers}
 
-            headers['USER_ID'] = user_id
+            headers['USER_ID'] = user['userId']
+            headers['USERNAME'] = user['username']
 
             req = tornado.httpclient.HTTPRequest(url, method=method, body=body, headers=headers)
             client = tornado.httpclient.AsyncHTTPClient()
@@ -99,28 +101,28 @@ def make_app(config: GandalfConfiguration):
 
         @user_authenticated
         @tornado.web.asynchronous
-        def get(self, user_id):
-            self.passthru(user_id)
+        def get(self, user):
+            self.passthru(user)
 
         @user_authenticated
         @tornado.web.asynchronous
-        def post(self, user_id):
-            self.passthru(user_id)
+        def post(self, user):
+            self.passthru(user)
 
         @user_authenticated
         @tornado.web.asynchronous
-        def put(self, user_id):
-            self.passthru(user_id)
+        def put(self, user):
+            self.passthru(user)
 
         @user_authenticated
         @tornado.web.asynchronous
-        def delete(self, user_id):
-            self.passthru(user_id)
+        def delete(self, user):
+            self.passthru(user)
 
         @user_authenticated
         @tornado.web.asynchronous
-        def patch(self, user_id):
-            self.passthru(user_id)
+        def patch(self, user):
+            self.passthru(user)
 
     class WebsocketHandler(tornado.websocket.WebSocketHandler):
         def __init__(self, application, request, **kwargs):
@@ -160,7 +162,7 @@ def make_app(config: GandalfConfiguration):
                         token = cached_token.decode()
                     else:
                         token = generate_token(user)
-                        cache.set(token, user.user_id)
+                        cache.set(token, json.dumps({"userId": user.user_id, "username": user.username}))
                         cache.set(user.user_id, token)
                     self.write(json.dumps({"access_token": token}))
                     self.set_status(200)

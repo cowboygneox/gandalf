@@ -60,6 +60,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         class TestHandler(tornado.web.RequestHandler):
             def get(self):
                 test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
                 self.write("this works")
 
         self.wire_app(TestHandler)
@@ -75,6 +76,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         class TestHandler(tornado.web.RequestHandler):
             def get(self):
                 test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
                 self.set_status(400)
                 self.write("the request was missing some parameter")
 
@@ -91,6 +93,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         class TestHandler(tornado.web.RequestHandler):
             def get(self):
                 test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
                 self.set_status(404)
 
         self.wire_app(TestHandler)
@@ -105,6 +108,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         class TestHandler(tornado.web.RequestHandler):
             def get(self):
                 test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
                 self.set_status(500)
 
         self.wire_app(TestHandler)
@@ -119,6 +123,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         class TestHandler(tornado.web.RequestHandler):
             def post(self):
                 test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
                 self.write("this works")
 
         self.wire_app(TestHandler)
@@ -134,6 +139,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         class TestHandler(tornado.web.RequestHandler):
             def post(self):
                 test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
                 self.set_status(400)
                 self.write("the request was missing some parameter")
 
@@ -151,6 +157,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         class TestHandler(tornado.web.RequestHandler):
             def post(self):
                 test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
                 self.set_status(404)
 
         self.wire_app(TestHandler)
@@ -165,6 +172,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         class TestHandler(tornado.web.RequestHandler):
             def post(self):
                 test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
                 self.set_status(500)
 
         self.wire_app(TestHandler)
@@ -179,6 +187,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         class TestHandler(tornado.web.RequestHandler):
             def put(self):
                 test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
                 self.write("this works")
 
         self.wire_app(TestHandler)
@@ -194,6 +203,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         class TestHandler(tornado.web.RequestHandler):
             def put(self):
                 test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
                 self.set_status(400)
                 self.write("the request was missing some parameter")
 
@@ -211,6 +221,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         class TestHandler(tornado.web.RequestHandler):
             def put(self):
                 test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
                 self.set_status(404)
 
         self.wire_app(TestHandler)
@@ -225,6 +236,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         class TestHandler(tornado.web.RequestHandler):
             def put(self):
                 test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
                 self.set_status(500)
 
         self.wire_app(TestHandler)
@@ -239,6 +251,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         class TestHandler(tornado.web.RequestHandler):
             def delete(self):
                 test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
                 self.write("this works")
 
         self.wire_app(TestHandler)
@@ -254,6 +267,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         class TestHandler(tornado.web.RequestHandler):
             def delete(self):
                 test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
                 self.set_status(400)
                 self.write("the request was missing some parameter")
 
@@ -271,6 +285,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         class TestHandler(tornado.web.RequestHandler):
             def delete(self):
                 test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
                 self.set_status(404)
 
         self.wire_app(TestHandler)
@@ -285,6 +300,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         class TestHandler(tornado.web.RequestHandler):
             def delete(self):
                 test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
                 self.set_status(500)
 
         self.wire_app(TestHandler)
@@ -299,6 +315,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         class TestHandler(tornado.web.RequestHandler):
             def patch(self):
                 test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
                 self.write("this works")
 
         self.wire_app(TestHandler)
@@ -314,6 +331,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         class TestHandler(tornado.web.RequestHandler):
             def patch(self):
                 test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
                 self.set_status(400)
                 self.write("the request was missing some parameter")
 
@@ -331,6 +349,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         class TestHandler(tornado.web.RequestHandler):
             def patch(self):
                 test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
                 self.set_status(404)
 
         self.wire_app(TestHandler)
@@ -345,6 +364,7 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         class TestHandler(tornado.web.RequestHandler):
             def patch(self):
                 test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
                 self.set_status(500)
 
         self.wire_app(TestHandler)
