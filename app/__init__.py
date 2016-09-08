@@ -73,6 +73,9 @@ def make_app(config: GandalfConfiguration):
         }
 
     class RestHandler(tornado.web.RequestHandler):
+        def compute_etag(self):
+            return None
+
         def passthru(self, user):
             def callback(response):
                 if response.body:
