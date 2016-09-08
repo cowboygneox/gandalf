@@ -69,7 +69,8 @@ def make_app(config: GandalfConfiguration):
 
     def passthru_headers():
         return {
-            'Content-Type'
+            'Content-Type',
+            'Location'
         }
 
     class RestHandler(tornado.web.RequestHandler):
