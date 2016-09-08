@@ -4,5 +4,7 @@ python:
 services:
   - redis-server
   - postgresql
+addons:
+  postgresql: "9.4"
 install: "pip install -r requirements.txt"
 script: python -um unittest
