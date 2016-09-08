@@ -197,7 +197,32 @@ def make_app(config: GandalfConfiguration):
             self.add_header("USER_ID", user_id)
             self.finish()
 
-    class UpdateUserHandler(tornado.web.RequestHandler):
+    class UserGetHandler(tornado.web.RequestHandler):
+        def get_user(self, user_id):
+            def payload(user):
+                return {
+                    "username": user.username,
+                    "userId": user.user_id
+                }
+
+            users = config.db_adapter.search_for_users_by_id([user_id])
+
+            if len(users) > 0:
+                user = users[0]
+                self.finish(payload(user))
+            else:
+                self.send_error(404)
+
+    class MeUserHandler(UserGetHandler):
+        @user_authenticated
+        def get(self, user):
+            self.get_user(user['userId'])
+
+    class UpdateUserHandler(UserGetHandler):
+        @internal_only
+        def get(self, user_id):
+            self.get_user(user_id)
+
         @internal_only
         def post(self, user_id):
             password = self.get_body_argument("password")
@@ -320,6 +345,7 @@ def make_app(config: GandalfConfiguration):
         (r"/auth/users/search", SearchUserHandler),
         (r"/auth/users/(.*)/deactivate", DeactivateUserHandler),
         (r"/auth/users/(.*)/reactivate", ReactivateUserHandler),
+        (r"/auth/users/me", MeUserHandler),
         (r"/auth/users/(.*)", UpdateUserHandler),
         (r"/auth/users", CreateUserHandler),
         (r".*", handler)
