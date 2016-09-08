@@ -19,8 +19,7 @@ class UserSearchTest(tornado.testing.AsyncHTTPTestCase):
     def get_app(self):
         conn = psycopg2.connect(host="localhost", user="postgres")
         cursor = conn.cursor()
-        cursor.execute("DROP TABLE IF EXISTS gandalf.users")
-        cursor.execute("DROP TABLE IF EXISTS gandalf.deactivated_users")
+        cursor.execute("DROP SCHEMA IF EXISTS gandalf CASCADE")
         conn.commit()
 
         app = make_app(GandalfConfiguration('localhost:8889', PostgresAdapter(), ['localhost']))
