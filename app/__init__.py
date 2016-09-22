@@ -1,9 +1,11 @@
 import base64
 import json
+import logging
 import os
 import uuid
 
 import jwt
+import re
 import redis
 import tornado.httpclient
 import tornado.ioloop
@@ -14,6 +16,12 @@ from passlib.apps import custom_app_context as pwd_context
 from app.config import GandalfConfiguration, WEBSOCKET
 from app.db import User
 from app.db.postgres_adapter import PostgresAdapter
+
+logger = logging.getLogger('gandalf')
+
+
+def should_allow_host(hostname, regex):
+    return re.fullmatch(regex, hostname) is not None
 
 
 def make_app(config: GandalfConfiguration):
@@ -137,7 +145,8 @@ def make_app(config: GandalfConfiguration):
         @ws_user_authenticated
         def open(self, *args, **kwargs):
             url = "ws://{}/{}".format(config.proxy_host, self.request.uri)
-            tornado.websocket.websocket_connect(url, callback=self.on_proxy_connected, on_message_callback=self.on_message)
+            tornado.websocket.websocket_connect(url, callback=self.on_proxy_connected,
+                                                on_message_callback=self.on_message)
 
         def on_proxy_connected(self, future):
             self.proxy = future.result()
@@ -179,7 +188,8 @@ def make_app(config: GandalfConfiguration):
     def internal_only(block):
         def wrapper(self, *args, **kwargs):
             hostname = self.request.host.split(":")[0]
-            if not hostname in config.allowed_hosts:
+            if not should_allow_host(hostname, config.allowed_hosts):
+                logger.info("Attempted access of {} from host {}".format(self.request.path, hostname))
                 self.send_error(404)
             else:
                 block(self, *args, **kwargs)

@@ -25,7 +25,7 @@ class WebsocketTest(tornado.testing.AsyncHTTPTestCase):
         cursor.execute("DROP SCHEMA IF EXISTS gandalf CASCADE")
         conn.commit()
 
-        app = make_app(GandalfConfiguration('localhost:8889', PostgresAdapter(), ['localhost'], mode=WEBSOCKET))
+        app = make_app(GandalfConfiguration('localhost:8889', PostgresAdapter(), 'localhost', mode=WEBSOCKET))
         app.listen(8888)
         return app
 
