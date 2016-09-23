@@ -25,6 +25,24 @@ class LoginTest(tornado.testing.AsyncHTTPTestCase):
         app.listen(8888)
         return app
 
+    def test_logout(self):
+        response = self.fetch("/auth/users", method="POST", body="username=test&password=test")
+        self.assertEqual(response.code, 201)
+
+        response = self.fetch("/auth/login", method="POST", body="username=test&password=test")
+        self.assertEqual(response.code, 200)
+
+        access_token = json.loads(response.body.decode())['access_token']
+
+        response = self.fetch("/auth/users/me", method="GET", headers={"Authorization": "Bearer {}".format(access_token)})
+        self.assertEqual(response.code, 200)
+
+        response = self.fetch("/auth/logout", method="POST", headers={"Authorization": "Bearer {}".format(access_token)}, body="")
+        self.assertEqual(response.code, 200)
+
+        response = self.fetch("/auth/users/me", method="GET", headers={"Authorization": "Bearer {}".format(access_token)})
+        self.assertEqual(response.code, 401)
+
     def test_break_login(self):
         response = self.fetch("/auth/users", method="POST", body="username=test&password=test")
         self.assertEqual(response.code, 201)

@@ -192,6 +192,15 @@ def make_app(config: GandalfConfiguration):
             except Exception:
                 self.send_error(401)
 
+    class LogoutHandler(tornado.web.RequestHandler):
+        @user_authenticated
+        def post(self, user):
+            token = cache.get(user['userId'])
+            cache.delete(user['userId'])
+            cache.delete(token)
+            self.set_status(200)
+            self.finish()
+
     def internal_only(block):
         def wrapper(self, *args, **kwargs):
             hostname = self.request.host.split(":")[0]
@@ -363,6 +372,7 @@ def make_app(config: GandalfConfiguration):
 
     return tornado.web.Application([
         (r"/auth/login", LoginHandler),
+        (r"/auth/logout", LogoutHandler),
         (r"/auth/users/search", SearchUserHandler),
         (r"/auth/users/(.*)/deactivate", DeactivateUserHandler),
         (r"/auth/users/(.*)/reactivate", ReactivateUserHandler),
