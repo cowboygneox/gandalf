@@ -49,7 +49,14 @@ def make_app(config: GandalfConfiguration):
                 failure_block(self)
             else:
                 try:
-                    token = authorization[0].replace("Bearer ", "").strip()
+                    authorization_value = authorization[0].strip()
+                    token_start = authorization_value.rfind(" ") + 1
+
+                    if not re.search('bearer', authorization_value[0:token_start], re.IGNORECASE):
+                        failure_block(self)
+                        return
+
+                    token = authorization_value[token_start:]
                     cached_user = json.loads(cache.get(token).decode())
                     decoded_user = decode_token(token)
                 except Exception as e:

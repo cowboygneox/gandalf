@@ -59,3 +59,34 @@ class LoginTest(tornado.testing.AsyncHTTPTestCase):
         token2 = json.loads(response.body.decode())['access_token']
 
         self.assertEqual(token1, token2)
+
+    def test_bearer_token_is_case_insensitive(self):
+        response = self.fetch("/auth/users", method="POST", body="username=test&password=test")
+        self.assertEqual(response.code, 201)
+
+        response = self.fetch("/auth/login", method="POST", body="username=test&password=test")
+        self.assertEqual(response.code, 200)
+        access_token = json.loads(response.body.decode())['access_token']
+
+        def authorization_should_succeed(authorization_value):
+            response = self.fetch("/auth/users/me", method="GET", headers={"Authorization": authorization_value})
+            self.assertEqual(response.code, 200)
+
+        def authorization_should_fail(authorization_value):
+            response = self.fetch("/auth/users/me", method="GET", headers={"Authorization": authorization_value})
+            self.assertEqual(response.code, 401)
+
+        authorization_should_succeed("Bearer {}".format(access_token))
+        authorization_should_succeed("bearer {}".format(access_token))
+        authorization_should_succeed("BEARER {}".format(access_token))
+        authorization_should_succeed("bEaReR {}".format(access_token))
+        authorization_should_succeed("bEaReR       {}".format(access_token))
+        authorization_should_succeed("     bEaReR       {}".format(access_token))
+        authorization_should_succeed("bEaReR {}    ".format(access_token))
+        authorization_should_succeed("      bEaReR {}    ".format(access_token))
+        authorization_should_succeed("      bEaReR        {}    ".format(access_token))
+
+        authorization_should_fail("Bear {}".format(access_token))
+        authorization_should_fail("Bear er {}".format(access_token))
+        authorization_should_fail("Bearer{}".format(access_token))
+        authorization_should_fail("b e a r e r {}".format(access_token))
