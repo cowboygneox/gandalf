@@ -370,3 +370,25 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
 
         response = self.fetch("/", method="PATCH", headers={"Authorization": "Bearer {}".format(token)}, body="")
         self.assertEqual(response.code, 500)
+
+
+    @login
+    def test_filter_headers(self, token):
+        from app import blocked_headers
+
+        self.assertEqual(blocked_headers(), {'Content-Length', 'Etag'})
+
+        test_self = self
+
+        class TestHandler(tornado.web.RequestHandler):
+            def get(self):
+                test_self.assertIsNotNone(self.request.headers['USER_ID'])
+                test_self.assertEqual(self.request.headers['USERNAME'], "test")
+                self.finish("This is a body")
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", method="GET", headers={"Authorization": "Bearer {}".format(token)})
+        self.assertEqual(response.code, 200)
+        self.assertEqual(response.headers['Content-Length'], '14')
+        self.assertEqual(response.headers.get_list('Etag'), [])

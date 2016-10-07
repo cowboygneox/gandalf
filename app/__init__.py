@@ -24,6 +24,12 @@ def should_allow_host(hostname, regex):
     return re.fullmatch(regex, hostname) is not None
 
 
+def blocked_headers():
+    return {
+        'Content-Length',  # Allow tornado to calculate the Content-Length
+        'Etag'
+    }
+
 def make_app(config: GandalfConfiguration):
     cache = redis.StrictRedis(host=os.getenv("GANDALF_REDIS_HOST", "localhost"), port=6379)
 
@@ -82,12 +88,6 @@ def make_app(config: GandalfConfiguration):
 
         return base_authenticated(block, failure)
 
-    def passthru_headers():
-        return {
-            'Content-Type',
-            'Location'
-        }
-
     class RestHandler(tornado.web.RequestHandler):
         def compute_etag(self):
             return None
@@ -97,7 +97,9 @@ def make_app(config: GandalfConfiguration):
                 if response.body:
                     self.write(response.body)
                 self.set_status(response.code)
-                for header_name in filter(lambda header_name: header_name in passthru_headers(), response.headers):
+                blocked = blocked_headers()
+                for header_name in filter(lambda header_name: header_name not in blocked, response.headers):
+                    print("{} {}".format(header_name, response.headers[header_name]))
                     self.set_header(header_name, response.headers[header_name])
                 self.finish()
 
