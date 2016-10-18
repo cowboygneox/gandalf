@@ -55,3 +55,22 @@ class GetUserTest(tornado.testing.AsyncHTTPTestCase):
             "userId": user_id
         }
         self.assertEqual(json.loads(response.body.decode()), json_payload)
+
+    def test_case_insensitive_get(self):
+        # Create McTest
+        response = self.fetch("/auth/users", method="POST", body="username=McTest&password=test")
+        self.assertEqual(response.code, 201)
+        user_id = response.headers['USER_ID']
+
+        # Make sure McTest = mctest
+        response = self.fetch("/auth/users/{}".format(user_id), method="GET")
+        self.assertEqual(response.code, 200)
+        json_payload = {
+            "username": "mctest",
+            "userId": user_id
+        }
+        self.assertEqual(json.loads(response.body.decode()), json_payload)
+
+        # Make sure create mcTest already exists
+        response = self.fetch("/auth/users", method="POST", body="username=mcTest&password=test")
+        self.assertEqual(response.code, 409)

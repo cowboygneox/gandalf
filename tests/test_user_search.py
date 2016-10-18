@@ -270,3 +270,124 @@ class UserSearchTest(tornado.testing.AsyncHTTPTestCase):
 
         self.assertEqual(response.code, 400)
         self.assertEqual(response.body.decode(), "Cannot search with both 'user_id' and 'username'. Please choose one.")
+
+
+    def test_search_for_case_insensitive_username(self):
+        response = self.fetch("/auth/users/search", method="POST", body="username=testuser")
+        self.assertEqual(response.code, 200)
+        json_payload = {
+            "errors": [{
+                "message": "Unable to find username",
+                "key": "username",
+                "value": "testuser"
+            }]
+        }
+        self.assertEqual(json.loads(response.body.decode()), json_payload)
+
+        response = self.fetch("/auth/users", method="POST", body="username=TestUser&password=test")
+        self.assertEqual(response.code, 201)
+        user_id = response.headers['USER_ID']
+
+        response = self.fetch("/auth/users/search", method="POST", body="username=TEStusER")
+        self.assertEqual(response.code, 200)
+        json_payload = {
+            "results": [{
+                "username": "testuser",
+                "userId": user_id
+            }]
+        }
+        self.assertEqual(json.loads(response.body.decode()), json_payload)
+
+    def test_search_for_many_case_insensitive_usernames(self):
+        username1 = "tEsTuSer1"
+        username2 = "TEstUSer2"
+        username3 = "teSTusER3"
+
+        self.maxDiff = None
+        response = self.fetch("/auth/users/search", method="POST",
+                              body="username={}&username={}&username={}".format(username1, username2, username3))
+        self.assertEqual(response.code, 200)
+        json_payload = {
+            "errors": [{
+                "message": "Unable to find username",
+                "key": "username",
+                "value": username1
+            }, {
+                "message": "Unable to find username",
+                "key": "username",
+                "value": username2
+            }, {
+                "message": "Unable to find username",
+                "key": "username",
+                "value": username3
+            }]
+        }
+        self.assertEqual(json.loads(response.body.decode()), json_payload)
+
+        response = self.fetch("/auth/users", method="POST", body="username={}&password=test".format(username1))
+        self.assertEqual(response.code, 201)
+        user_id1 = response.headers['USER_ID']
+
+        response = self.fetch("/auth/users/search", method="POST",
+                              body="username={}&username={}&username={}".format(username1, username2, username3))
+        self.assertEqual(response.code, 200)
+        json_payload = {
+            "results": [{
+                "username": username1.lower(),
+                "userId": user_id1
+            }],
+            "errors": [{
+                "message": "Unable to find username",
+                "key": "username",
+                "value": username2
+            }, {
+                "message": "Unable to find username",
+                "key": "username",
+                "value": username3
+            }]
+        }
+        self.assertEqual(json.loads(response.body.decode()), json_payload)
+
+        response = self.fetch("/auth/users", method="POST", body="username={}&password=test2".format(username2))
+        self.assertEqual(response.code, 201)
+        user_id2 = response.headers['USER_ID']
+
+        response = self.fetch("/auth/users/search", method="POST",
+                              body="username={}&username={}&username={}".format(username1, username2, username3))
+        self.assertEqual(response.code, 200)
+        json_payload = {
+            "results": [{
+                "username": username1.lower(),
+                "userId": user_id1
+            }, {
+                "username": username2.lower(),
+                "userId": user_id2
+            }],
+            "errors": [{
+                "message": "Unable to find username",
+                "key": "username",
+                "value": username3
+            }]
+        }
+        self.assertEqual(json.loads(response.body.decode()), json_payload)
+
+        response = self.fetch("/auth/users", method="POST", body="username={}&password=test3".format(username3))
+        self.assertEqual(response.code, 201)
+        user_id3 = response.headers['USER_ID']
+
+        response = self.fetch("/auth/users/search", method="POST",
+                              body="username={}&username={}&username={}".format(username1, username2, username3))
+        self.assertEqual(response.code, 200)
+        json_payload = {
+            "results": [{
+                "username": username1.lower(),
+                "userId": user_id1
+            }, {
+                "username": username2.lower(),
+                "userId": user_id2
+            }, {
+                "username": username3.lower(),
+                "userId": user_id3
+            }]
+        }
+        self.assertEqual(json.loads(response.body.decode()), json_payload)
