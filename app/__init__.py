@@ -12,6 +12,7 @@ import tornado.ioloop
 import tornado.web
 import tornado.websocket
 from passlib.apps import custom_app_context as pwd_context
+from psycopg2._psycopg import IntegrityError
 
 from app.config import GandalfConfiguration, WEBSOCKET
 from app.db import User
@@ -223,11 +224,13 @@ def make_app(config: GandalfConfiguration):
 
             hashed_password = pwd_context.encrypt(password)
 
-            config.db_adapter.create_user(user_id, username, hashed_password)
-
-            self.set_status(201)
-            self.add_header("USER_ID", user_id)
-            self.finish()
+            try:
+                config.db_adapter.create_user(user_id, username, hashed_password)
+                self.set_status(201)
+                self.add_header("USER_ID", user_id)
+                self.finish()
+            except IntegrityError:
+                self.send_error(409)
 
     class UserGetHandler(tornado.web.RequestHandler):
         def get_user(self, user_id):
@@ -322,7 +325,7 @@ def make_app(config: GandalfConfiguration):
             users = config.db_adapter.search_for_users_by_username(usernames)
 
             found_usernames = [user.username for user in users]
-            missing_usernames = list(filter(lambda username: username not in found_usernames, usernames))
+            missing_usernames = list(filter(lambda username: username.lower() not in found_usernames, usernames))
 
             response_payload = {}
 

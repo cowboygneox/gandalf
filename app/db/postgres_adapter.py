@@ -46,13 +46,13 @@ class PostgresAdapter(DBAdapter):
     def get_user(self, username) -> User:
         conn = self._new_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT user_id, username, password FROM gandalf.users WHERE username = %s", [username])
+        cursor.execute("SELECT user_id, username, password FROM gandalf.users WHERE username = lower(%s)", [username])
         return self._user_row_mapper(cursor.fetchone())
 
     def create_user(self, user_id, username, password):
         conn = self._new_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO gandalf.users (user_id, username, password) VALUES (%s, %s, %s)",
+        cursor.execute("INSERT INTO gandalf.users (user_id, username, password) VALUES (%s, lower(%s), %s)",
                        [user_id, username, password])
         conn.commit()
 
@@ -71,7 +71,7 @@ class PostgresAdapter(DBAdapter):
     def search_for_users_by_username(self, usernames):
         conn = self._new_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT user_id, username, password FROM gandalf.users WHERE username = ANY(%s)", [usernames]),
+        cursor.execute("SELECT user_id, username, password FROM gandalf.users WHERE username = ANY(lower(%s::text)::text[])", [usernames]),
         return [self._user_row_mapper(row) for row in cursor]
 
     def deactivate_user(self, user_id):
