@@ -5,6 +5,10 @@ class User:
         self.hashed_password = hashed_password
 
 
+class UserExistsException(Exception):
+    pass
+
+
 class DBAdapter:
     def get_user(self, username) -> User:
         return False

@@ -311,15 +311,15 @@ class UserSearchTest(tornado.testing.AsyncHTTPTestCase):
             "errors": [{
                 "message": "Unable to find username",
                 "key": "username",
-                "value": username1
+                "value": username1.lower()
             }, {
                 "message": "Unable to find username",
                 "key": "username",
-                "value": username2
+                "value": username2.lower()
             }, {
                 "message": "Unable to find username",
                 "key": "username",
-                "value": username3
+                "value": username3.lower()
             }]
         }
         self.assertEqual(json.loads(response.body.decode()), json_payload)
@@ -339,11 +339,11 @@ class UserSearchTest(tornado.testing.AsyncHTTPTestCase):
             "errors": [{
                 "message": "Unable to find username",
                 "key": "username",
-                "value": username2
+                "value": username2.lower()
             }, {
                 "message": "Unable to find username",
                 "key": "username",
-                "value": username3
+                "value": username3.lower()
             }]
         }
         self.assertEqual(json.loads(response.body.decode()), json_payload)
@@ -366,7 +366,7 @@ class UserSearchTest(tornado.testing.AsyncHTTPTestCase):
             "errors": [{
                 "message": "Unable to find username",
                 "key": "username",
-                "value": username3
+                "value": username3.lower()
             }]
         }
         self.assertEqual(json.loads(response.body.decode()), json_payload)

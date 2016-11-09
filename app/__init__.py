@@ -12,10 +12,9 @@ import tornado.ioloop
 import tornado.web
 import tornado.websocket
 from passlib.apps import custom_app_context as pwd_context
-from psycopg2._psycopg import IntegrityError
 
 from app.config import GandalfConfiguration, WEBSOCKET
-from app.db import User
+from app.db import User, UserExistsException
 from app.db.postgres_adapter import PostgresAdapter
 
 logger = logging.getLogger('gandalf')
@@ -30,6 +29,7 @@ def blocked_headers():
         'Content-Length',  # Allow tornado to calculate the Content-Length
         'Etag'
     }
+
 
 def make_app(config: GandalfConfiguration):
     cache = redis.StrictRedis(host=os.getenv("GANDALF_REDIS_HOST", "localhost"), port=6379)
@@ -174,7 +174,7 @@ def make_app(config: GandalfConfiguration):
     class LoginHandler(tornado.web.RequestHandler):
         def post(self):
             try:
-                username = self.get_body_argument("username")
+                username = self.get_body_argument("username").lower()
                 password = self.get_body_argument("password")
 
                 user = config.db_adapter.get_user(username)
@@ -218,7 +218,7 @@ def make_app(config: GandalfConfiguration):
     class CreateUserHandler(tornado.web.RequestHandler):
         @internal_only
         def post(self):
-            username = self.get_body_argument("username")
+            username = self.get_body_argument("username").lower()
             password = self.get_body_argument("password")
             user_id = str(uuid.uuid1())
 
@@ -229,7 +229,7 @@ def make_app(config: GandalfConfiguration):
                 self.set_status(201)
                 self.add_header("USER_ID", user_id)
                 self.finish()
-            except IntegrityError:
+            except UserExistsException:
                 self.send_error(409)
 
     class UserGetHandler(tornado.web.RequestHandler):
@@ -325,7 +325,7 @@ def make_app(config: GandalfConfiguration):
             users = config.db_adapter.search_for_users_by_username(usernames)
 
             found_usernames = [user.username for user in users]
-            missing_usernames = list(filter(lambda username: username.lower() not in found_usernames, usernames))
+            missing_usernames = list(filter(lambda username: username not in found_usernames, usernames))
 
             response_payload = {}
 
@@ -355,7 +355,7 @@ def make_app(config: GandalfConfiguration):
         @internal_only
         def post(self):
             user_ids = self.get_body_arguments("user_id")
-            usernames = self.get_body_arguments("username")
+            usernames = [username.lower() for username in self.get_body_arguments("username")]
 
             if len(user_ids) > 0 and len(usernames) > 0:
                 self.set_status(400)
