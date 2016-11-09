@@ -53,9 +53,10 @@ class WebsocketTest(tornado.testing.AsyncHTTPTestCase):
         self.assertEqual(await conn.read_message(), None)
         self.assertEqual(conn.close_code, 401)
 
-        request = HTTPRequest(url="ws://localhost:8888/", headers={"Authorization": "Bearer {}".format(token)})
+        request = HTTPRequest(url="ws://localhost:8888/")
 
         conn = await tornado.websocket.websocket_connect(request)
+        conn.write_message("Authorization: Bearer {}".format(token))
         self.assertEqual(await conn.read_message(), 'Boom')
 
         conn.close()

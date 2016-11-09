@@ -50,6 +50,13 @@ def make_app(config: GandalfConfiguration):
     def decode_token(token):
         return jwt.decode(base64.b64decode(token), key=config.signing_secret)
 
+    def extract_token(authorization_value):
+        token_start = authorization_value.rfind(" ") + 1
+        if not re.search('bearer', authorization_value[0:token_start], re.IGNORECASE):
+            return None
+
+        return authorization_value[token_start:]
+
     def base_authenticated(block, failure_block):
         def wrapper(self):
             authorization = self.request.headers.get_list('Authorization')
@@ -58,13 +65,12 @@ def make_app(config: GandalfConfiguration):
             else:
                 try:
                     authorization_value = authorization[0].strip()
-                    token_start = authorization_value.rfind(" ") + 1
+                    token = extract_token(authorization_value)
 
-                    if not re.search('bearer', authorization_value[0:token_start], re.IGNORECASE):
+                    if token is None:
                         failure_block(self)
                         return
 
-                    token = authorization_value[token_start:]
                     cached_user = json.loads(cache.get(token).decode())
                     decoded_user = decode_token(token)
                 except Exception as e:
@@ -150,27 +156,42 @@ def make_app(config: GandalfConfiguration):
     class WebsocketHandler(tornado.websocket.WebSocketHandler):
         def __init__(self, application, request, **kwargs):
             super().__init__(application, request, **kwargs)
-            self.active = False
             self.proxy = None
+            self.authentication_token = None
+            self.authentication_timer = None
 
-        @ws_user_authenticated
+        def check_authenticated(self):
+            if self.authentication_token is None:
+                self.close(code=401)
+
         def open(self, *args, **kwargs):
-            url = "ws://{}/{}".format(config.proxy_host, self.request.uri)
-            tornado.websocket.websocket_connect(url, callback=self.on_proxy_connected,
-                                                on_message_callback=self.on_message)
+            self.authentication_timer = tornado.ioloop.IOLoop.current().call_later(2, self.check_authenticated)
+
+        def on_message(self, message):
+            if self.authentication_token is None:
+                tornado.ioloop.IOLoop.current().remove_timeout(self.authentication_timer)
+                self.authentication_timer = None
+                token = extract_token(message)
+                if token is None:
+                    self.close(code=401)
+                else:
+                    url = "ws://{}/{}".format(config.proxy_host, self.request.uri)
+                    tornado.websocket.websocket_connect(url, callback=self.on_proxy_connected,
+                                                        on_message_callback=self.on_proxy_message)
+            else:
+                self.close(code=401)
 
         def on_proxy_connected(self, future):
             self.proxy = future.result()
-            self.active = True
 
-        def on_message(self, message):
-            if self.active:
+        def on_proxy_message(self, message):
+            if self.proxy is not None:
                 self.write_message(message)
 
         def on_close(self):
-            self.active = False
             if self.proxy:
                 self.proxy.close()
+                self.proxy = None
 
     class LoginHandler(tornado.web.RequestHandler):
         def post(self):
