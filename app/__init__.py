@@ -14,7 +14,7 @@ import tornado.websocket
 from passlib.apps import custom_app_context as pwd_context
 
 from app.config import GandalfConfiguration, WEBSOCKET
-from app.db import User
+from app.db import User, UserExistsException
 from app.db.postgres_adapter import PostgresAdapter
 
 logger = logging.getLogger('gandalf')
@@ -29,6 +29,7 @@ def blocked_headers():
         'Content-Length',  # Allow tornado to calculate the Content-Length
         'Etag'
     }
+
 
 def make_app(config: GandalfConfiguration):
     cache = redis.StrictRedis(host=os.getenv("GANDALF_REDIS_HOST", "localhost"), port=6379)
@@ -173,7 +174,7 @@ def make_app(config: GandalfConfiguration):
     class LoginHandler(tornado.web.RequestHandler):
         def post(self):
             try:
-                username = self.get_body_argument("username")
+                username = self.get_body_argument("username").lower()
                 password = self.get_body_argument("password")
 
                 user = config.db_adapter.get_user(username)
@@ -217,17 +218,19 @@ def make_app(config: GandalfConfiguration):
     class CreateUserHandler(tornado.web.RequestHandler):
         @internal_only
         def post(self):
-            username = self.get_body_argument("username")
+            username = self.get_body_argument("username").lower()
             password = self.get_body_argument("password")
             user_id = str(uuid.uuid1())
 
             hashed_password = pwd_context.encrypt(password)
 
-            config.db_adapter.create_user(user_id, username, hashed_password)
-
-            self.set_status(201)
-            self.add_header("USER_ID", user_id)
-            self.finish()
+            try:
+                config.db_adapter.create_user(user_id, username, hashed_password)
+                self.set_status(201)
+                self.add_header("USER_ID", user_id)
+                self.finish()
+            except UserExistsException:
+                self.send_error(409)
 
     class UserGetHandler(tornado.web.RequestHandler):
         def get_user(self, user_id):
@@ -352,7 +355,7 @@ def make_app(config: GandalfConfiguration):
         @internal_only
         def post(self):
             user_ids = self.get_body_arguments("user_id")
-            usernames = self.get_body_arguments("username")
+            usernames = [username.lower() for username in self.get_body_arguments("username")]
 
             if len(user_ids) > 0 and len(usernames) > 0:
                 self.set_status(400)

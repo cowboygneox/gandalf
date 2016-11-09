@@ -1,9 +1,8 @@
 import os
-import uuid
 
 import psycopg2
 
-from app.db import DBAdapter, User
+from app.db import DBAdapter, User, UserExistsException
 
 
 class PostgresAdapter(DBAdapter):
@@ -52,6 +51,11 @@ class PostgresAdapter(DBAdapter):
     def create_user(self, user_id, username, password):
         conn = self._new_connection()
         cursor = conn.cursor()
+
+        cursor.execute("SELECT username FROM gandalf.users WHERE username = %s", [username])
+        if cursor.fetchone() is not None:
+            raise UserExistsException()
+
         cursor.execute("INSERT INTO gandalf.users (user_id, username, password) VALUES (%s, %s, %s)",
                        [user_id, username, password])
         conn.commit()
