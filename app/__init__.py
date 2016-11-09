@@ -50,12 +50,19 @@ def make_app(config: GandalfConfiguration):
     def decode_token(token):
         return jwt.decode(base64.b64decode(token), key=config.signing_secret)
 
-    def extract_token(authorization_value):
+    def extract_user_from_token(authorization_value):
         token_start = authorization_value.rfind(" ") + 1
         if not re.search('bearer', authorization_value[0:token_start], re.IGNORECASE):
             return None
 
-        return authorization_value[token_start:]
+        token = authorization_value[token_start:]
+        cached_user = json.loads(cache.get(token).decode())
+        decoded_user = decode_token(token)
+
+        if cached_user == decoded_user:
+            return cached_user
+        else:
+            return None
 
     def base_authenticated(block, failure_block):
         def wrapper(self):
@@ -63,22 +70,11 @@ def make_app(config: GandalfConfiguration):
             if len(authorization) == 0:
                 failure_block(self)
             else:
-                try:
-                    authorization_value = authorization[0].strip()
-                    token = extract_token(authorization_value)
+                authorization_value = authorization[0].strip()
+                user = extract_user_from_token(authorization_value)
 
-                    if token is None:
-                        failure_block(self)
-                        return
-
-                    cached_user = json.loads(cache.get(token).decode())
-                    decoded_user = decode_token(token)
-                except Exception as e:
-                    failure_block(self)
-                    return
-
-                if decoded_user == cached_user:
-                    block(self, cached_user)
+                if user is not None:
+                    block(self, user)
                 else:
                     failure_block(self)
 
@@ -159,6 +155,7 @@ def make_app(config: GandalfConfiguration):
             self.proxy = None
             self.authentication_token = None
             self.authentication_timer = None
+            self.user = None
 
         def check_authenticated(self):
             if self.authentication_token is None:
@@ -171,10 +168,11 @@ def make_app(config: GandalfConfiguration):
             if self.authentication_token is None:
                 tornado.ioloop.IOLoop.current().remove_timeout(self.authentication_timer)
                 self.authentication_timer = None
-                token = extract_token(message)
-                if token is None:
+                user = extract_user_from_token(message)
+                if user is None:
                     self.close(code=401)
                 else:
+                    self.user = user
                     url = "ws://{}/{}".format(config.proxy_host, self.request.uri)
                     tornado.websocket.websocket_connect(url, callback=self.on_proxy_connected,
                                                         on_message_callback=self.on_proxy_message)
@@ -183,6 +181,7 @@ def make_app(config: GandalfConfiguration):
 
         def on_proxy_connected(self, future):
             self.proxy = future.result()
+            self.proxy.write_message("USER_ID: %s" % self.user['userId'])
 
         def on_proxy_message(self, message):
             if self.proxy is not None:

@@ -31,8 +31,12 @@ class WebsocketTest(tornado.testing.AsyncHTTPTestCase):
 
     @tornado.testing.gen_test
     async def test_websockets_require_authentication(self):
+        testself = self
+        user_id = None
+
         class EchoWebSocket(tornado.websocket.WebSocketHandler):
-            def open(self):
+            def on_message(self, message):
+                testself.assertEqual(message, 'USER_ID: %s' % user_id)
                 self.write_message("Boom")
 
         background_app = tornado.web.Application([
@@ -42,6 +46,7 @@ class WebsocketTest(tornado.testing.AsyncHTTPTestCase):
 
         response = await self.http_client.fetch("http://localhost:8888/auth/users", method="POST", body="username=test&password=test")
         self.assertEqual(response.code, 201)
+        user_id = response.headers['USER_ID']
 
         response = await self.http_client.fetch("http://localhost:8888/auth/login", method="POST", body="username=test&password=test")
         self.assertEqual(response.code, 200)
