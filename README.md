@@ -45,6 +45,7 @@ To use the Docker image, configure the following environment variables:
 
 - `GANDALF_PROXIED_HOST`: the *hostname:port* to proxy authenticated requests
 - `GANDALF_ALLOWED_HOSTS`: A Python regular expression of hosts that have the ability to change data within Gandalf (usually the same as `GANDALF_PROXIED_HOST`)
+- `GANDALF_SIGNING_SECRET`: A secret seed used to ensure that access tokens originate from Gandalf
 - `GANDALF_POSTGRES_HOST`: the *hostname* of the PostgreSQL server
 - `GANDALF_POSTGRES_USER`: The *user* used to authenticate with PostgreSQL
 - `GANDALF_POSTGRES_PASSWORD`: The *password* used to authenticate with PostgreSQL
