@@ -27,6 +27,7 @@ def should_allow_host(hostname, regex):
 def blocked_headers():
     return {
         'Content-Length',  # Allow tornado to calculate the Content-Length
+        'Transfer-Encoding',
         'Etag'
     }
 

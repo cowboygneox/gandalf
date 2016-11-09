@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 
 import psycopg2
 import tornado.httpclient
@@ -148,7 +147,6 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         self.assertEqual(response.code, 400)
         self.assertEqual(response.body.decode(), "the request was missing some parameter")
 
-
     @login
     def test_post_404(self, token):
         test_self = self
@@ -211,7 +209,6 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         response = self.fetch("/", method="PUT", headers={"Authorization": "Bearer {}".format(token)}, body="")
         self.assertEqual(response.code, 400)
         self.assertEqual(response.body.decode(), "the request was missing some parameter")
-
 
     @login
     def test_put_404(self, token):
@@ -276,7 +273,6 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         self.assertEqual(response.code, 400)
         self.assertEqual(response.body.decode(), "the request was missing some parameter")
 
-
     @login
     def test_delete_404(self, token):
         test_self = self
@@ -340,7 +336,6 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         self.assertEqual(response.code, 400)
         self.assertEqual(response.body.decode(), "the request was missing some parameter")
 
-
     @login
     def test_patch_404(self, token):
         test_self = self
@@ -371,12 +366,11 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         response = self.fetch("/", method="PATCH", headers={"Authorization": "Bearer {}".format(token)}, body="")
         self.assertEqual(response.code, 500)
 
-
     @login
     def test_filter_headers(self, token):
         from app import blocked_headers
 
-        self.assertEqual(blocked_headers(), {'Content-Length', 'Etag'})
+        self.assertEqual(blocked_headers(), {'Content-Length', 'Etag', 'Transfer-Encoding'})
 
         test_self = self
 
@@ -392,3 +386,20 @@ class HandlerTest(tornado.testing.AsyncHTTPTestCase):
         self.assertEqual(response.code, 200)
         self.assertEqual(response.headers['Content-Length'], '14')
         self.assertEqual(response.headers.get_list('Etag'), [])
+        self.assertEqual(response.headers.get_list('Transfer-Encoding'), [])
+
+    @login
+    def test_chunked_transfer_encoding(self, token):
+        class TestHandler(tornado.web.RequestHandler):
+            def get(self):
+                for i in range(0, 5):
+                    self.write('chunk %d\n' % i)
+                    self.flush()
+
+        self.wire_app(TestHandler)
+
+        response = self.fetch("/", method="GET", headers={"Authorization": "Bearer {}".format(token)})
+        self.assertEqual(response.headers.get_list('Transfer-Encoding'), [])
+        self.assertEqual(response.headers['Content-Length'], '40')
+        self.assertEqual(response.code, 200)
+        self.assertEqual(response.body.decode(), 'chunk 0\nchunk 1\nchunk 2\nchunk 3\nchunk 4\n')
