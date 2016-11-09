@@ -2,10 +2,10 @@ import base64
 import json
 import logging
 import os
+import re
 import uuid
 
 import jwt
-import re
 import redis
 import tornado.httpclient
 import tornado.ioloop
@@ -29,6 +29,7 @@ def blocked_headers():
         'Content-Length',  # Allow tornado to calculate the Content-Length
         'Etag'
     }
+
 
 def make_app(config: GandalfConfiguration):
     cache = redis.StrictRedis(host=os.getenv("GANDALF_REDIS_HOST", "localhost"), port=6379)
@@ -367,12 +368,45 @@ def make_app(config: GandalfConfiguration):
                 self.set_status(200)
                 self.finish()
 
+    class LiveHandler(tornado.web.RequestHandler):
+        def get(self, *args, **kwargs):
+            self.write("OK")
+
+    class ReadyHandler(tornado.web.RequestHandler):
+        def get(self, *args, **kwargs):
+            def check_redis():
+                key = "health-%s" % str(uuid.uuid4())
+                value = str(uuid.uuid4())
+                cache_set = cache.set(key, value)
+                if not cache_set:
+                    return False
+
+                if not cache.delete(key, value):
+                    return False
+
+                return True
+
+            def check_postgres():
+                return config.db_adapter.search_for_users_by_username([str(uuid.uuid4())]) == []
+
+            if not check_redis():
+                self.write("Failed to connect to Redis")
+                self.set_status(503)
+            elif not check_postgres():
+                self.write("Failed to connect to Postgres")
+                self.set_status(503)
+            else:
+                self.write("OK")
+                self.set_status(200)
+
     if config.mode == WEBSOCKET:
         handler = WebsocketHandler
     else:
         handler = RestHandler
 
     return tornado.web.Application([
+        (r"/auth/live", LiveHandler),
+        (r"/auth/ready", ReadyHandler),
         (r"/auth/login", LoginHandler),
         (r"/auth/logout", LogoutHandler),
         (r"/auth/users/search", SearchUserHandler),
