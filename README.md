@@ -144,3 +144,18 @@ Note: This endpoint is only accessible by hosts that pass the `GANDALF_ALLOWED_H
 
 Requires the header `Authorization: Bearer {access_token}`. If allowed, Gandalf will pass the request verbatim to the 
 `GANDALF_PROXIED_HOST`.
+
+### WebSocket Contract
+
+To enable websocket support instead of HTTP support, set the environment variable `GANDALF_WEBSOCKET_MODE=True`.
+
+After the websocket is appropriately authenticated, traffic will proxy as expected. If a user token expires or is
+otherwise revoked, the socket will close on the next incoming or outgoing interaction.
+
+To authenticate the websocket, first connect to Gandalf at `/` and immediately provide the following message:
+
+```
+Authorization: Bearer {access_token}
+```
+
+If authentication fails, the socket will immediately close and return a 401.
