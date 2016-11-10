@@ -50,13 +50,14 @@ def make_app(config: GandalfConfiguration):
     def decode_token(token):
         return jwt.decode(base64.b64decode(token), key=config.signing_secret)
 
-    def extract_user_from_token(authorization_value):
+    def extract_token(authorization_value):
         token_start = authorization_value.rfind(" ") + 1
         if not re.search('bearer', authorization_value[0:token_start], re.IGNORECASE):
             return None
 
-        token = authorization_value[token_start:]
+        return authorization_value[token_start:]
 
+    def extract_and_verify_user_from_token(token):
         cache_hit = cache.get(token)
         if cache_hit is None:
             return None
@@ -76,7 +77,8 @@ def make_app(config: GandalfConfiguration):
                 failure_block(self)
             else:
                 authorization_value = authorization[0].strip()
-                user = extract_user_from_token(authorization_value)
+                token = extract_token(authorization_value)
+                user = extract_and_verify_user_from_token(token)
 
                 if user is not None:
                     block(self, user)
@@ -154,33 +156,46 @@ def make_app(config: GandalfConfiguration):
         def patch(self, user):
             self.passthru(user)
 
+    def with_user(block):
+        def wrapper(self, *args, **kwargs):
+            user = extract_and_verify_user_from_token(self.authentication_token)
+            if user is None:
+                self.close(code=401)
+                return None
+            else:
+                return block(self, user, *args, **kwargs)
+
+        return wrapper
+
     class WebsocketHandler(tornado.websocket.WebSocketHandler):
         def __init__(self, application, request, **kwargs):
             super().__init__(application, request, **kwargs)
             self.proxy = None
             self.authentication_timer = None
-            self.user = None
+            self.authentication_token = None
             self.pending_messages = []
 
         def check_authenticated(self):
-            if self.user is None:
+            if self.authentication_token is None:
                 self.close(code=401)
 
         def open(self, *args, **kwargs):
             self.authentication_timer = tornado.ioloop.IOLoop.current().call_later(2, self.check_authenticated)
 
-        def forward_message(self, message):
+        @with_user
+        def forward_message(self, user, message):
             self.proxy.write_message(message)
 
         def on_message(self, message):
-            if self.user is None:
+            if self.authentication_token is None:
                 tornado.ioloop.IOLoop.current().remove_timeout(self.authentication_timer)
                 self.authentication_timer = None
-                user = extract_user_from_token(message)
+                token = extract_token(message)
+                user = extract_and_verify_user_from_token(token)
                 if user is None:
                     self.close(code=401)
                 else:
-                    self.user = user
+                    self.authentication_token = token
                     url = "ws://{}/{}".format(config.proxy_host, self.request.uri)
                     tornado.websocket.websocket_connect(url, callback=self.on_proxy_connected,
                                                         on_message_callback=self.on_proxy_message)
@@ -189,14 +204,16 @@ def make_app(config: GandalfConfiguration):
             else:
                 self.forward_message(message)
 
-        def on_proxy_connected(self, future):
+        @with_user
+        def on_proxy_connected(self, user, future):
             self.proxy = future.result()
-            self.proxy.write_message("USER_ID: %s" % self.user['userId'])
+            self.proxy.write_message("USER_ID: %s" % user['userId'])
             for message in self.pending_messages:
                 self.forward_message(message)
             self.pending_messages = None
 
-        def on_proxy_message(self, message):
+        @with_user
+        def on_proxy_message(self, user, message):
             if self.proxy is not None:
                 self.write_message(message)
 
