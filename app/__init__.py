@@ -56,7 +56,12 @@ def make_app(config: GandalfConfiguration):
             return None
 
         token = authorization_value[token_start:]
-        cached_user = json.loads(cache.get(token).decode())
+
+        cache_hit = cache.get(token)
+        if cache_hit is None:
+            return None
+
+        cached_user = json.loads(cache_hit.decode())
         decoded_user = decode_token(token)
 
         if cached_user == decoded_user:
