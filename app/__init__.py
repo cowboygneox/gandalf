@@ -196,7 +196,7 @@ def make_app(config: GandalfConfiguration):
                     self.close(code=401)
                 else:
                     self.authentication_token = token
-                    url = "ws://{}/{}".format(config.proxy_host, self.request.uri)
+                    url = "ws://{}{}".format(config.proxy_host, self.request.uri)
                     tornado.websocket.websocket_connect(url, callback=self.on_proxy_connected,
                                                         on_message_callback=self.on_proxy_message)
             elif self.proxy is None:
