@@ -158,19 +158,22 @@ def make_app(config: GandalfConfiguration):
         def __init__(self, application, request, **kwargs):
             super().__init__(application, request, **kwargs)
             self.proxy = None
-            self.authentication_token = None
             self.authentication_timer = None
             self.user = None
+            self.pending_messages = []
 
         def check_authenticated(self):
-            if self.authentication_token is None:
+            if self.user is None:
                 self.close(code=401)
 
         def open(self, *args, **kwargs):
             self.authentication_timer = tornado.ioloop.IOLoop.current().call_later(2, self.check_authenticated)
 
+        def forward_message(self, message):
+            self.proxy.write_message(message)
+
         def on_message(self, message):
-            if self.authentication_token is None:
+            if self.user is None:
                 tornado.ioloop.IOLoop.current().remove_timeout(self.authentication_timer)
                 self.authentication_timer = None
                 user = extract_user_from_token(message)
@@ -181,12 +184,17 @@ def make_app(config: GandalfConfiguration):
                     url = "ws://{}/{}".format(config.proxy_host, self.request.uri)
                     tornado.websocket.websocket_connect(url, callback=self.on_proxy_connected,
                                                         on_message_callback=self.on_proxy_message)
+            elif self.proxy is None:
+                self.pending_messages.append(message)
             else:
-                self.close(code=401)
+                self.forward_message(message)
 
         def on_proxy_connected(self, future):
             self.proxy = future.result()
             self.proxy.write_message("USER_ID: %s" % self.user['userId'])
+            for message in self.pending_messages:
+                self.forward_message(message)
+            self.pending_messages = None
 
         def on_proxy_message(self, message):
             if self.proxy is not None:
